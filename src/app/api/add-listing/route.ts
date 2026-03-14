@@ -13,6 +13,7 @@ export async function POST(request: Request) {
       categories = [], tagline, description,
       whatsapp, email, website, area,
       landmark, pincode, openingHours, closedOn, established,
+      images = [],
     } = body;
 
     if (!name?.trim())    return NextResponse.json({ error: "Nursery name is required" },  { status: 400 });
@@ -56,10 +57,18 @@ export async function POST(request: Request) {
         closedOn:     closedOn?.trim()    || null,
         established:  established ? parseInt(established) : null,
         cityId:       city.id,
-        isActive:     true,   // ← show immediately
-        isPending:    false,  // ← no approval needed
+        isActive:     true,
+        isPending:    false,
         categories:   categoryIds.length > 0
           ? { create: categoryIds.map((id: string) => ({ categoryId: id })) }
+          : undefined,
+        photos: images && images.length > 0
+          ? { create: images.map((img: any, i: number) => ({
+              url:       img.url,
+              isPrimary: i === 0,
+              alt:       name.trim(),
+              sortOrder: i,
+            })) }
           : undefined,
       },
     });

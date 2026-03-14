@@ -3,12 +3,14 @@ import { useState } from "react";
 import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/shared/Footer";
 import { CATEGORIES, CITIES } from "@/lib/utils";
+import ImageUploader from "@/components/ui/ImageUploader";
 
 export default function AddListingPage() {
   const [loading, setLoading]   = useState(false);
   const [success, setSuccess]   = useState(false);
   const [error,   setError]     = useState("");
   const [selCats, setSelCats]   = useState<string[]>([]);
+  const [images,  setImages]    = useState<{url:string;publicId:string;thumbnail:string}[]>([]);
 
   const toggleCat = (slug: string) =>
     setSelCats((p) => p.includes(slug) ? p.filter((s) => s !== slug) : [...p, slug]);
@@ -36,6 +38,7 @@ export default function AddListingPage() {
       openingHours: fd.get("openingHours"),
       established:  fd.get("established"),
       categories:   selCats,
+      images:       images.map((img, i) => ({ url: img.url, isPrimary: i === 0 })),
     };
 
     try {
@@ -192,6 +195,20 @@ export default function AddListingPage() {
                 <label className="label">Landmark</label>
                 <input name="landmark" placeholder="e.g. Near Metro Station, Opposite Shopping Mall" className="input" />
               </div>
+            </div>
+
+            {/* ── Photos ── */}
+            <div className="card p-7">
+              <h2 className="font-display text-xl font-bold text-forest-900 border-b border-gray-100 pb-3 mb-5">
+                Photos <span className="text-gray-400 normal-case font-normal text-sm">(optional but recommended)</span>
+              </h2>
+              <ImageUploader
+                value={images}
+                onChange={setImages}
+                maxImages={5}
+                folder="nurseries"
+                label=""
+              />
             </div>
 
             {/* ── Categories ── */}
