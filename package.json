@@ -10,7 +10,9 @@
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
     "db:studio": "prisma studio",
-    "db:seed": "npx tsx prisma/seed.ts"
+    "db:seed": "npx tsx prisma/seed.ts",
+    "db:seed:location": "npx tsx prisma/seed-location.ts",
+    "db:seed:all": "npm run db:seed && npm run db:seed:location"
   },
   "dependencies": {
     "@prisma/client": "^5.10.0",

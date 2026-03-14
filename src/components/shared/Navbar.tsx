@@ -6,6 +6,7 @@ import { CATEGORIES, CITIES, SITE } from "@/lib/utils";
 const NAV_LINKS = [
   { label: "Find Nursery", href: "/nursery/all" },
   { label: "Blog",         href: "/blog" },
+  { label: "Browse States", href: "/states" },
   { label: "About",        href: "/about" },
 ];
 

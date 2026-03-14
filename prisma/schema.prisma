@@ -8,32 +8,68 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
+  id        String    @id @default(cuid())
+  email     String    @unique
   name      String?
   password  String?
-  role      Role     @default(USER)
+  role      Role      @default(USER)
   avatar    String?
   phone     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
   reviews   Review[]
   listings  Nursery[] @relation("NurseryOwner")
-
   @@map("users")
 }
 
-enum Role {
-  USER
-  OWNER
-  ADMIN
+enum Role { USER OWNER ADMIN }
+
+model State {
+  id           String     @id @default(cuid())
+  name         String     @unique
+  slug         String     @unique
+  code         String     @unique
+  capital      String?
+  region       String?
+  description  String?
+  imageUrl     String?
+  nurseryCount Int        @default(0)
+  districtCount Int       @default(0)
+  isActive     Boolean    @default(true)
+  createdAt    DateTime   @default(now())
+  districts    District[]
+  cities       City[]
+  nurseries    Nursery[]
+  @@index([slug])
+  @@map("states")
+}
+
+model District {
+  id           String    @id @default(cuid())
+  name         String
+  slug         String
+  stateId      String
+  description  String?
+  imageUrl     String?
+  nurseryCount Int       @default(0)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  state        State     @relation(fields: [stateId], references: [id])
+  cities       City[]
+  nurseries    Nursery[]
+  @@unique([slug, stateId])
+  @@index([stateId])
+  @@index([slug])
+  @@map("districts")
 }
 
 model City {
   id           String    @id @default(cuid())
-  name         String    @unique
+  name         String
   slug         String    @unique
   state        String
+  stateId      String?
+  districtId   String?
   country      String    @default("India")
   description  String?
   imageUrl     String?
@@ -41,7 +77,10 @@ model City {
   isActive     Boolean   @default(true)
   createdAt    DateTime  @default(now())
   nurseries    Nursery[]
-
+  stateRef     State?    @relation(fields: [stateId],    references: [id])
+  districtRef  District? @relation(fields: [districtId], references: [id])
+  @@index([stateId])
+  @@index([districtId])
   @@map("cities")
 }
 
@@ -55,7 +94,6 @@ model Category {
   sortOrder   Int               @default(0)
   createdAt   DateTime          @default(now())
   nurseries   NurseryCategory[]
-
   @@map("categories")
 }
 
@@ -82,22 +120,27 @@ model Nursery {
   isVerified    Boolean           @default(false)
   isFeatured    Boolean           @default(false)
   isActive      Boolean           @default(true)
-  isPending     Boolean           @default(true)
+  isPending     Boolean           @default(false)
   avgRating     Float             @default(0)
   totalReviews  Int               @default(0)
   viewCount     Int               @default(0)
   cityId        String
+  stateId       String?
+  districtId    String?
   ownerId       String?
   importBatch   String?
   createdAt     DateTime          @default(now())
   updatedAt     DateTime          @updatedAt
-  city          City              @relation(fields: [cityId], references: [id])
-  owner         User?             @relation("NurseryOwner", fields: [ownerId], references: [id])
+  city          City              @relation(fields: [cityId],     references: [id])
+  state         State?            @relation(fields: [stateId],    references: [id])
+  district      District?         @relation(fields: [districtId], references: [id])
+  owner         User?             @relation("NurseryOwner",       fields: [ownerId], references: [id])
   categories    NurseryCategory[]
   reviews       Review[]
   photos        Photo[]
-
   @@index([cityId])
+  @@index([stateId])
+  @@index([districtId])
   @@index([slug])
   @@index([isFeatured, isActive])
   @@map("nurseries")
@@ -106,25 +149,23 @@ model Nursery {
 model NurseryCategory {
   nurseryId  String
   categoryId String
-  nursery    Nursery  @relation(fields: [nurseryId], references: [id], onDelete: Cascade)
+  nursery    Nursery  @relation(fields: [nurseryId],  references: [id], onDelete: Cascade)
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
-
   @@id([nurseryId, categoryId])
   @@map("nursery_categories")
 }
 
 model Review {
-  id        String   @id @default(cuid())
-  rating    Int
-  title     String?
-  comment   String?
-  nurseryId String
-  userId    String
-  isApproved Boolean @default(true)
-  createdAt DateTime @default(now())
-  nursery   Nursery  @relation(fields: [nurseryId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id])
-
+  id         String   @id @default(cuid())
+  rating     Int
+  title      String?
+  comment    String?
+  nurseryId  String
+  userId     String
+  isApproved Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  nursery    Nursery  @relation(fields: [nurseryId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId],    references: [id])
   @@map("reviews")
 }
 
@@ -138,7 +179,6 @@ model Photo {
   nurseryId String
   createdAt DateTime @default(now())
   nursery   Nursery  @relation(fields: [nurseryId], references: [id], onDelete: Cascade)
-
   @@map("photos")
 }
 
@@ -158,7 +198,6 @@ model BlogPost {
   viewCount   Int       @default(0)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-
   @@map("blog_posts")
 }
 
@@ -173,6 +212,5 @@ model BulkImportLog {
   importedBy  String
   batchId     String   @unique
   createdAt   DateTime @default(now())
-
   @@map("bulk_import_logs")
 }
