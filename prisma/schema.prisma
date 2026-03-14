@@ -22,7 +22,11 @@ model User {
   @@map("users")
 }
 
-enum Role { USER OWNER ADMIN }
+enum Role {
+  USER
+  OWNER
+  ADMIN
+}
 
 model State {
   id           String     @id @default(cuid())
