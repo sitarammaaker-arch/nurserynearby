@@ -5,6 +5,7 @@ import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/shared/Footer";
 import { NurseryCard, CategoryCard, SearchBar } from "@/components/ui/Cards";
 import { CATEGORIES, CITIES, SITE } from "@/lib/utils";
+import { prisma } from "@/lib/prisma";
 
 interface Props {
   params: { city: string };
@@ -21,42 +22,80 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-async function getNurseries(citySlug: string, q?: string, category?: string, page = 1, sort = "featured") {
+async function getNurseries(
+  citySlug: string,
+  q?: string,
+  category?: string,
+  page = 1,
+  sort = "featured"
+) {
+  const PER_PAGE = 12;
   try {
-    const params = new URLSearchParams();
-    if (citySlug !== "all") params.set("city", citySlug);
-    if (q)        params.set("q", q);
-    if (category) params.set("category", category);
-    params.set("page",  String(page));
-    params.set("limit", "12");
-    params.set("sort",  sort);
+    const where: any = { isActive: true };
 
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-    const res = await fetch(`${baseUrl}/api/nursery?${params.toString()}`, { cache: "no-store" });
-    if (!res.ok) return { nurseries: [], total: 0, pages: 0 };
-    const data = await res.json();
+    // City filter
+    if (citySlug !== "all") {
+      where.city = { slug: citySlug };
+    }
 
-    const nurseries = (data.nurseries ?? []).map((n: any) => ({
+    // Search filter
+    if (q) {
+      where.OR = [
+        { name:        { contains: q, mode: "insensitive" } },
+        { description: { contains: q, mode: "insensitive" } },
+        { area:        { contains: q, mode: "insensitive" } },
+        { tagline:     { contains: q, mode: "insensitive" } },
+      ];
+    }
+
+    // Category filter
+    if (category) {
+      where.categories = { some: { category: { slug: category } } };
+    }
+
+    // Sort order
+    const orderBy: any =
+      sort === "rating"  ? [{ avgRating:    "desc" }] :
+      sort === "newest"  ? [{ createdAt:    "desc" }] :
+      sort === "reviews" ? [{ totalReviews: "desc" }] :
+                           [{ isFeatured:   "desc" }, { avgRating: "desc" }];
+
+    const [items, total] = await Promise.all([
+      prisma.nursery.findMany({
+        where,
+        orderBy,
+        include: {
+          city:       { select: { name: true, slug: true } },
+          categories: { include: { category: { select: { name: true, slug: true, icon: true } } } },
+          photos:     { where: { isPrimary: true }, take: 1 },
+        },
+        take: PER_PAGE,
+        skip: (page - 1) * PER_PAGE,
+      }),
+      prisma.nursery.count({ where }),
+    ]);
+
+    const nurseries = items.map((n) => ({
       id:           n.id,
       name:         n.name,
       slug:         n.slug,
       tagline:      n.tagline,
       address:      n.address,
       area:         n.area,
-      cityName:     n.city?.name ?? "",
+      cityName:     n.city.name,
       avgRating:    n.avgRating,
       totalReviews: n.totalReviews,
       phone:        n.phone,
-      primaryImage: n.photos?.[0]?.url ?? null,
+      primaryImage: n.photos[0]?.url ?? null,
       isFeatured:   n.isFeatured,
       isVerified:   n.isVerified,
-      categories:   (n.categories ?? []).map((c: any) => c.category?.name),
+      categories:   n.categories.map((c) => c.category.name),
       established:  n.established,
     }));
 
-    return { nurseries, total: data.total ?? 0, pages: data.pages ?? 0 };
+    return { nurseries, total, pages: Math.ceil(total / PER_PAGE) };
   } catch (e) {
-    console.error("getNurseries error:", e);
+    console.error("DB error:", e);
     return { nurseries: [], total: 0, pages: 0 };
   }
 }
@@ -74,7 +113,11 @@ export default async function CityPage({ params, searchParams }: Props) {
   const sort    = searchParams.sort ?? "featured";
 
   const { nurseries, total, pages } = await getNurseries(
-    params.city, searchParams.q, searchParams.category, page, sort
+    params.city,
+    searchParams.q,
+    searchParams.category,
+    page,
+    sort
   );
 
   return (
@@ -100,7 +143,9 @@ export default async function CityPage({ params, searchParams }: Props) {
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-4xl">{(cityMeta as any).emoji ?? "🌱"}</span>
                   <h1 className="font-display text-4xl font-bold text-forest-900">
-                    {catMeta ? `${catMeta.icon} ${catMeta.name} in ${cityMeta.name}` : `Nursery in ${cityMeta.name}`}
+                    {catMeta
+                      ? `${catMeta.icon} ${catMeta.name} in ${cityMeta.name}`
+                      : `Nursery in ${cityMeta.name}`}
                   </h1>
                 </div>
                 <p className="text-gray-500">
@@ -137,6 +182,7 @@ export default async function CityPage({ params, searchParams }: Props) {
         <section className="py-10">
           <div className="container">
             <div className="flex flex-col lg:flex-row gap-8">
+
               {/* Sidebar */}
               <aside className="w-full lg:w-64 shrink-0 space-y-5">
                 <div className="card p-5">
@@ -198,7 +244,9 @@ export default async function CityPage({ params, searchParams }: Props) {
                     <div className="text-7xl mb-5">🌱</div>
                     <h3 className="font-display text-2xl font-bold text-gray-700 mb-2">No nurseries found</h3>
                     <p className="text-gray-500 mb-6">
-                      {searchParams.q ? `No results for "${searchParams.q}"` : `Be the first to list in ${cityMeta.name}!`}
+                      {searchParams.q
+                        ? `No results for "${searchParams.q}" — try a different search`
+                        : `Be the first to list your nursery in ${cityMeta.name}!`}
                     </p>
                     <div className="flex gap-3 justify-center">
                       <Link href={`/nursery/${params.city}`} className="btn btn-outline">Clear Filters</Link>
@@ -214,7 +262,9 @@ export default async function CityPage({ params, searchParams }: Props) {
         {/* Category grid */}
         <section className="section-sm gradient-sage border-t border-gray-100">
           <div className="container">
-            <h2 className="font-display text-2xl font-bold text-forest-900 mb-6">Browse by Category in {cityMeta.name}</h2>
+            <h2 className="font-display text-2xl font-bold text-forest-900 mb-6">
+              Browse by Category in {cityMeta.name}
+            </h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
               {CATEGORIES.map((c) => <CategoryCard key={c.slug} {...c} citySlug={params.city} />)}
             </div>
