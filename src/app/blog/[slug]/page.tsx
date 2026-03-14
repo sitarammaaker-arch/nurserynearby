@@ -5,6 +5,7 @@ import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/shared/Footer";
 import { prisma } from "@/lib/prisma";
 import { SITE } from "@/lib/utils";
+import { blogPostMeta, blogSchema, breadcrumbSchema } from "@/lib/seo";
 
 interface Props { params: { slug: string } }
 
@@ -36,14 +37,22 @@ const DEMO_POSTS: Record<string, any> = {
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const post = DEMO_POSTS[params.slug];
+  let post: any = DEMO_POSTS[params.slug];
+  try {
+    const db = await prisma.blogPost.findUnique({ where: { slug: params.slug } });
+    if (db) post = db;
+  } catch {}
   if (!post) return { title: "Post Not Found" };
-  return {
-    title: post.title,
-    description: post.excerpt,
-    alternates: { canonical: `${SITE.url}/blog/${params.slug}` },
-    openGraph: { title: post.title, description: post.excerpt, images: post.coverImage ? [post.coverImage] : [] },
-  };
+  return blogPostMeta({
+    title:       post.title,
+    slug:        post.slug ?? params.slug,
+    excerpt:     post.excerpt,
+    category:    post.category,
+    tags:        post.tags ?? [],
+    coverImage:  post.coverImage,
+    author:      post.author ?? "NurseryNearby Team",
+    publishedAt: post.publishedAt,
+  });
 }
 
 export default async function BlogPostPage({ params }: Props) {
@@ -54,6 +63,11 @@ export default async function BlogPostPage({ params }: Props) {
   if (!post) post = DEMO_POSTS[params.slug];
   if (!post) notFound();
 
+  const breadcrumbs = breadcrumbSchema([
+    { name: "Home", url: SITE.url },
+    { name: "Blog", url: `${SITE.url}/blog` },
+    { name: post.title, url: `${SITE.url}/blog/${post.slug ?? params.slug}` },
+  ]);
   const schema = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -68,6 +82,7 @@ export default async function BlogPostPage({ params }: Props) {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }} />
       <Navbar />
       <main>
         {/* Cover image */}

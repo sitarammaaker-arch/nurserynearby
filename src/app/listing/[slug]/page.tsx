@@ -7,6 +7,7 @@ import Footer from "@/components/shared/Footer";
 import { Stars, ReviewCard } from "@/components/ui/Cards";
 import { prisma } from "@/lib/prisma";
 import { SITE, CATEGORIES } from "@/lib/utils";
+import { listingPageMeta, listingSchema, breadcrumbSchema } from "@/lib/seo";
 
 interface Props { params: { slug: string } }
 
@@ -15,20 +16,25 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   try {
     const n = await prisma.nursery.findUnique({
-      where: { slug: params.slug },
-      include: { city: true, photos: { where: { isPrimary: true }, take: 1 } },
+      where:   { slug: params.slug },
+      include: {
+        city:       true,
+        categories: { include: { category: { select: { name: true } } } },
+        photos:     { where: { isPrimary: true }, take: 1 },
+      },
     });
     if (!n) return { title: "Nursery Not Found" };
-    return {
-      title: `${n.name} — Plant Nursery in ${n.city.name}`,
-      description: n.description?.slice(0, 160) ?? `Visit ${n.name} in ${n.city.name}.`,
-      alternates: { canonical: `${SITE.url}/listing/${params.slug}` },
-      openGraph: {
-        title: `${n.name} — ${n.city.name}`,
-        description: n.description?.slice(0, 160) ?? "",
-        images: n.photos[0]?.url ? [n.photos[0].url] : [],
-      },
-    };
+    return listingPageMeta({
+      name:         n.name,
+      slug:         n.slug,
+      cityName:     n.city.name,
+      citySlug:     n.city.slug,
+      description:  n.description,
+      categories:   n.categories.map((c) => c.category.name),
+      avgRating:    n.avgRating,
+      totalReviews: n.totalReviews,
+      photoUrl:     n.photos[0]?.url ?? null,
+    });
   } catch {
     return { title: "Nursery" };
   }
@@ -97,6 +103,7 @@ export default async function ListingPage({ params }: Props) {
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbs) }} />
       <Navbar />
       <main>
 
