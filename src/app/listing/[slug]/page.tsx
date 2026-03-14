@@ -406,22 +406,50 @@ export default async function ListingPage({ params }: Props) {
                 ))}
               </div>
 
-              {/* Map */}
-              {nursery.latitude && nursery.longitude && (
-                <div className="card overflow-hidden">
-                  <a href={`https://maps.google.com/?q=${nursery.latitude},${nursery.longitude}`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="flex flex-col items-center justify-center gap-2 h-44 bg-gradient-to-br from-forest-50 to-sage-50 hover:from-forest-100 transition-colors">
-                    <div className="w-12 h-12 gradient-forest rounded-full flex items-center justify-center shadow-green">
-                      <svg viewBox="0 0 24 24" className="w-6 h-6 fill-white">
-                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/>
-                      </svg>
-                    </div>
-                    <span className="font-semibold text-forest text-sm">Open in Google Maps</span>
-                    <span className="text-2xs text-gray-400">{nursery.city.name}, India</span>
+              {/* Google Maps Embed */}
+              <div className="card overflow-hidden">
+                <div className="px-5 py-3 border-b border-gray-100 flex items-center justify-between">
+                  <h3 className="font-display font-bold text-forest-900 text-sm">📍 Location</h3>
+                  <a
+                    href={
+                      nursery.latitude && nursery.longitude
+                        ? `https://maps.google.com/?q=${nursery.latitude},${nursery.longitude}`
+                        : `https://maps.google.com/?q=${encodeURIComponent(nursery.address + ", " + nursery.city.name + ", India")}`
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-forest font-semibold hover:underline"
+                  >
+                    Open in Maps ↗
                   </a>
                 </div>
-              )}
+                <div className="relative w-full h-56">
+                  <iframe
+                    title={`Map of ${nursery.name}`}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 0 }}
+                    loading="lazy"
+                    allowFullScreen
+                    referrerPolicy="no-referrer-when-downgrade"
+                    src={
+                      nursery.latitude && nursery.longitude
+                        ? `https://maps.google.com/maps?q=${nursery.latitude},${nursery.longitude}&zoom=15&output=embed`
+                        : `https://maps.google.com/maps?q=${encodeURIComponent(nursery.address + " " + nursery.city.name + " India")}&zoom=15&output=embed`
+                    }
+                  />
+                </div>
+                <div className="px-5 py-3 bg-gray-50 flex items-start gap-2">
+                  <svg viewBox="0 0 24 24" className="w-4 h-4 fill-forest shrink-0 mt-0.5">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/>
+                  </svg>
+                  <div>
+                    <p className="text-xs font-medium text-gray-700">{nursery.address}</p>
+                    {nursery.landmark && <p className="text-2xs text-gray-400 mt-0.5">{nursery.landmark}</p>}
+                    <p className="text-2xs text-gray-400">{nursery.city.name}, India{nursery.pincode ? ` — ${nursery.pincode}` : ""}</p>
+                  </div>
+                </div>
+              </div>
 
               {/* Share */}
               <div className="card p-5">
