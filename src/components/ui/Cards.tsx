@@ -39,8 +39,24 @@ export function NurseryCard(props: NurseryCardProps) {
       {/* Image */}
       <div className="relative aspect-[4/3] bg-gradient-to-br from-forest-50 to-sage-50 overflow-hidden">
         {primaryImage ? (
-          <Image src={primaryImage} alt={name} fill
-            className="object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy"/>
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={primaryImage}
+            alt={name}
+            className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
+            onError={(e) => {
+              const target = e.currentTarget;
+              target.style.display = "none";
+              const parent = target.parentElement;
+              if (parent && !parent.querySelector(".img-fallback")) {
+                const fallback = document.createElement("div");
+                fallback.className = "img-fallback absolute inset-0 flex items-center justify-center";
+                fallback.innerHTML = "<span style=\"font-size:3rem;opacity:0.2\">🌱</span>";
+                parent.appendChild(fallback);
+              }
+            }}
+          />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center">
             <span className="text-5xl opacity-25">🌱</span>
