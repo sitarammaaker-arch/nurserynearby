@@ -13,12 +13,25 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const city = CITIES.find((c) => c.slug === params.city);
-  const name = city?.name ?? (params.city === "all" ? "All Cities" : params.city);
+  let name = params.city === "all" ? "All Cities"
+    : CITIES.find((c) => c.slug === params.city)?.name ?? null;
+
+  // Fall back to DB lookup for auto-created cities
+  if (!name && params.city !== "all") {
+    try {
+      const dbCity = await prisma.city.findUnique({
+        where: { slug: params.city }, select: { name: true },
+      });
+      if (dbCity) name = dbCity.name;
+    } catch {}
+    name = name ?? params.city.replace(/-/g, " ");
+  }
+
+  const title = `Plant Nursery in ${name} — Buy Plants Near You`;
   return {
-    title: `Plant Nursery in ${name} — Buy Plants Near You`,
+    title,
     description: `Find the best plant nurseries in ${name}. Indoor plants, fruit trees, flower plants & more.`,
-    alternates: { canonical: `${SITE.url}/nursery/${params.city}` },
+    alternates:  { canonical: `${SITE.url}/nursery/${params.city}` },
   };
 }
 
@@ -101,10 +114,29 @@ async function getNurseries(
 }
 
 export default async function CityPage({ params, searchParams }: Props) {
-  const cityMeta =
+  // First check static list, then fall back to DB lookup
+  let cityMeta: { name: string; slug: string; state?: string; emoji?: string } | null =
     params.city === "all"
       ? { name: "All Cities", slug: "all", state: "India", emoji: "🌍" }
-      : CITIES.find((c) => c.slug === params.city);
+      : CITIES.find((c) => c.slug === params.city) ?? null;
+
+  // Not in static list — look up in database (auto-created cities)
+  if (!cityMeta && params.city !== "all") {
+    try {
+      const dbCity = await prisma.city.findUnique({
+        where:   { slug: params.city },
+        include: { stateRef: { select: { name: true } } },
+      });
+      if (dbCity) {
+        cityMeta = {
+          name:  dbCity.name,
+          slug:  dbCity.slug,
+          state: dbCity.stateRef?.name ?? dbCity.state ?? "India",
+          emoji: "🌿",
+        };
+      }
+    } catch {}
+  }
 
   if (!cityMeta) notFound();
 
