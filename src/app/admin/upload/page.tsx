@@ -12,11 +12,12 @@ interface ParsedRow {
 }
 
 interface UploadResult {
-  total: number;
-  success: number;
-  failed: number;
-  errors: { row: number; name: string; error: string }[];
-  batchId: string;
+  total:             number;
+  imported:          number;
+  failed:            number;
+  skippedDuplicates: number;
+  errors:            { row: number; name: string; error: string }[];
+  batchId:           string;
 }
 
 function downloadTemplate() {
@@ -74,16 +75,32 @@ export default function BulkUploadPage() {
       const lines = text.split("\n").filter((l) => l.trim() && !l.startsWith("#"));
       if (lines.length < 2) throw new Error("File is empty or has no data rows.");
 
-      const rawHeader = lines[0].split(",").map((h) => h.replace(/['"]/g, "").trim());
-      const missing = ["name","phone","address","city"].filter((r) => !rawHeader.includes(r));
+      // Auto-detect delimiter: tab or comma
+      const firstLine = lines[0];
+      const delimiter = firstLine.includes("\t") ? "\t" : ",";
+
+      const rawHeader = firstLine.split(delimiter).map((h) => h.replace(/['"\r]/g, "").trim());
+      const missing = ["name","address","city"].filter((r) => !rawHeader.includes(r));
       if (missing.length > 0) throw new Error(`Missing required columns: ${missing.join(", ")}`);
 
       const rows: ParsedRow[] = [];
       for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) ?? [];
+        const line = lines[i].replace(/\r$/, "");
+        if (!line.trim()) continue;
+
+        let values: string[];
+        if (delimiter === "\t") {
+          // Tab-separated: simple split
+          values = line.split("\t").map((v) => v.replace(/^"|"$/g, "").trim());
+        } else {
+          // Comma-separated: handle quoted fields
+          values = line.match(/(".*?"|[^,]+|(?<=,)(?=,)|(?<=,)$|^(?=,))/g) ?? [];
+          values = values.map((v) => v.replace(/^"|"$/g, "").trim());
+        }
+
         const row: Record<string, string> = {};
         rawHeader.forEach((h, idx) => {
-          row[h] = (values[idx] ?? "").replace(/^"|"$/g, "").trim();
+          row[h] = (values[idx] ?? "").trim();
         });
         rows.push(validateRow(row, i));
       }
@@ -134,7 +151,7 @@ export default function BulkUploadPage() {
       }
 
       const data = await res.json();
-      setResult(data);
+      setResult({ ...data, skippedDuplicates: data.skippedDuplicates ?? 0 });
       setStatus("done");
     } catch (e: any) {
       setErrorMsg(e.message);
@@ -195,7 +212,7 @@ export default function BulkUploadPage() {
           onDrop={(e) => { e.preventDefault(); setDragOver(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
           onClick={() => fileRef.current?.click()}
         >
-          <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls" className="hidden"
+          <input ref={fileRef} type="file" accept=".csv,.tsv,.xlsx,.xls,.txt" className="hidden"
             onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}/>
           <div className="text-5xl mb-4">{status === "parsing" ? "⏳" : "📤"}</div>
           {status === "parsing" ? (
@@ -206,10 +223,10 @@ export default function BulkUploadPage() {
               <p className="text-sm text-gray-500 mb-4">or click to browse from your computer</p>
               <div className="flex justify-center gap-2">
                 <span className="badge badge-cream">CSV</span>
+                <span className="badge badge-cream">TSV</span>
                 <span className="badge badge-cream">XLSX</span>
-                <span className="badge badge-cream">XLS</span>
               </div>
-              <p className="text-xs text-gray-400 mt-4">Max 10,000 rows per file · UTF-8 encoding recommended</p>
+              <p className="text-xs text-gray-400 mt-4">Max 10,000 rows · CSV or TSV (tab-separated) · UTF-8 encoding</p>
             </>
           )}
         </div>
@@ -344,18 +361,22 @@ export default function BulkUploadPage() {
           <div className="text-5xl mb-4">🎉</div>
           <h2 className="font-display text-2xl font-bold text-forest-900 mb-2">Import Complete!</h2>
           <p className="text-gray-600 mb-6">Your nursery data has been successfully uploaded and is pending review.</p>
-          <div className="grid grid-cols-3 gap-4 max-w-sm mx-auto mb-6">
-            <div className="bg-white rounded-xl p-4 border border-gray-100">
+          <div className="grid grid-cols-4 gap-3 max-w-lg mx-auto mb-6">
+            <div className="bg-white rounded-xl p-3 border border-gray-100 text-center">
               <p className="font-display text-2xl font-bold text-forest">{result.total}</p>
               <p className="text-2xs text-gray-500 uppercase tracking-wider">Total</p>
             </div>
-            <div className="bg-white rounded-xl p-4 border border-green-100">
-              <p className="font-display text-2xl font-bold text-green-600">{result.success}</p>
+            <div className="bg-white rounded-xl p-3 border border-green-100 text-center">
+              <p className="font-display text-2xl font-bold text-green-600">{result.imported}</p>
               <p className="text-2xs text-gray-500 uppercase tracking-wider">Imported</p>
             </div>
-            <div className="bg-white rounded-xl p-4 border border-red-100">
-              <p className="font-display text-2xl font-bold text-red-500">{result.failed}</p>
-              <p className="text-2xs text-gray-500 uppercase tracking-wider">Failed</p>
+            <div className="bg-white rounded-xl p-3 border border-amber-100 text-center">
+              <p className="font-display text-2xl font-bold text-amber-500">{result.skippedDuplicates}</p>
+              <p className="text-2xs text-gray-500 uppercase tracking-wider">Duplicates</p>
+            </div>
+            <div className="bg-white rounded-xl p-3 border border-red-100 text-center">
+              <p className="font-display text-2xl font-bold text-red-500">{result.failed - result.skippedDuplicates}</p>
+              <p className="text-2xs text-gray-500 uppercase tracking-wider">Errors</p>
             </div>
           </div>
           <p className="text-2xs text-gray-400 mb-5">Batch ID: {result.batchId}</p>
