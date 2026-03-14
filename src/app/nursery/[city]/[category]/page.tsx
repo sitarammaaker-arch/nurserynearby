@@ -53,6 +53,8 @@ async function getNurseries(citySlug: string, categorySlug: string, page = 1) {
   }
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function CityCategoryPage({ params, searchParams }: Props) {
   const cityMeta = params.city === "all"
     ? { name: "All Cities", slug: "all" }

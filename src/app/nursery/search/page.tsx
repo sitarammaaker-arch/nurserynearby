@@ -47,6 +47,8 @@ async function search(q: string, city: string, page: number) {
   }
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function SearchPage({ searchParams }: Props) {
   const q    = searchParams.q ?? "";
   const city = searchParams.city ?? "all";

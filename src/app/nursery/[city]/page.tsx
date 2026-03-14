@@ -113,6 +113,8 @@ async function getNurseries(
   }
 }
 
+export const dynamic = "force-dynamic";
+
 export default async function CityPage({ params, searchParams }: Props) {
   // First check static list, then fall back to DB lookup
   let cityMeta: { name: string; slug: string; state?: string; emoji?: string } | null =
