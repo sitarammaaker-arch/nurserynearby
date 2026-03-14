@@ -1,40 +1,121 @@
 import type { Metadata } from "next";
-import Navbar from "@/components/shared/Navbar";
-import Footer from "@/components/shared/Footer";
-import { BlogCard } from "@/components/ui/Cards";
+import Link from "next/link";
+import Image from "next/image";
+import { prisma } from "@/lib/prisma";
+import BlogPostActions from "./BlogPostActions";
 
-export const metadata: Metadata = { title: "Blog — Plant Care Guides & Nursery Tips" };
+export const metadata: Metadata = { title: "Blog Posts — Admin" };
+export const dynamic = "force-dynamic";
 
-const POSTS = [
-  { id:"1", title:"10 Indoor Plants That Thrive in Indian Apartments", slug:"indoor-plants-indian-apartments", excerpt:"Discover which plants survive low light, monsoon humidity, and busy lifestyles — perfect for city living.", category:"Indoor Plants", coverImage:"https://images.unsplash.com/photo-1545241047-6083a3684587?w=600&q=80", publishedAt:new Date("2025-03-08"), readTime:5 },
-  { id:"2", title:"How to Start a Kitchen Garden on a Mumbai Balcony", slug:"kitchen-garden-balcony", excerpt:"From coriander to chillies — a step-by-step guide to edible gardening in compact urban spaces.", category:"Gardening Tips", coverImage:"https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=600&q=80", publishedAt:new Date("2025-03-02"), readTime:7 },
-  { id:"3", title:"The Complete Guide to Rare & Exotic Plants in India", slug:"rare-exotic-plants-india", excerpt:"Monstera deliciosa, Bird of Paradise, and more — where to find them and how to keep them alive.", category:"Rare Plants", coverImage:"https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?w=600&q=80", publishedAt:new Date("2025-02-24"), readTime:8 },
-  { id:"4", title:"Best Flowering Plants for Indian Homes in Summer", slug:"flowering-plants-india-summer", excerpt:"Beat the heat with these gorgeous flowering plants that thrive in India's scorching summers.", category:"Flower Plants", coverImage:"https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=600&q=80", publishedAt:new Date("2025-02-16"), readTime:6 },
-  { id:"5", title:"How to Choose the Right Soil Mix for Your Plants", slug:"right-soil-mix-plants", excerpt:"A good soil mix is the foundation of healthy plants. Here's what every Indian plant parent should know.", category:"Plant Care", coverImage:"https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?w=600&q=80", publishedAt:new Date("2025-02-08"), readTime:4 },
-  { id:"6", title:"5 Succulents That Survive Delhi Winters", slug:"succulents-delhi-winters", excerpt:"These tough little plants can handle Delhi's foggy winters and still look beautiful on your windowsill.", category:"Succulents", coverImage:"https://images.unsplash.com/photo-1552353617-3bfd679b3bdd?w=600&q=80", publishedAt:new Date("2025-01-30"), readTime:5 },
-];
+export default async function AdminBlogPage() {
+  let posts: any[] = [];
+  try {
+    posts = await prisma.blogPost.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+  } catch {}
 
-export default function BlogPage() {
+  const published = posts.filter((p) => p.isPublished).length;
+  const drafts    = posts.filter((p) => !p.isPublished).length;
+
   return (
-    <>
-      <Navbar/>
-      <main>
-        <section className="gradient-sage py-14 border-b border-gray-100">
-          <div className="container text-center">
-            <span className="badge badge-green mb-4">Plant Knowledge Hub</span>
-            <h1 className="font-display text-5xl font-bold text-forest-900 mb-4">NurseryNearby Blog</h1>
-            <p className="body-lg max-w-xl mx-auto">Expert plant care guides, nursery tips, and gardening inspiration for Indian plant lovers.</p>
+    <div className="space-y-6">
+
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="font-display text-3xl font-bold text-forest-900">Blog Posts</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            {published} published · {drafts} drafts
+          </p>
+        </div>
+        <Link href="/admin/blog/new" className="btn btn-primary">
+          <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
+          </svg>
+          Write New Post
+        </Link>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="card p-5 bg-forest-50 border-forest-100">
+          <p className="text-2xs font-bold uppercase tracking-wider text-forest-500 mb-1">Total Posts</p>
+          <p className="font-display text-3xl font-bold text-forest">{posts.length}</p>
+        </div>
+        <div className="card p-5 bg-green-50 border-green-100">
+          <p className="text-2xs font-bold uppercase tracking-wider text-green-600 mb-1">Published</p>
+          <p className="font-display text-3xl font-bold text-green-700">{published}</p>
+        </div>
+        <div className="card p-5 bg-amber-50 border-amber-100">
+          <p className="text-2xs font-bold uppercase tracking-wider text-amber-600 mb-1">Drafts</p>
+          <p className="font-display text-3xl font-bold text-amber-700">{drafts}</p>
+        </div>
+      </div>
+
+      {/* Posts list */}
+      {posts.length === 0 ? (
+        <div className="card p-16 text-center">
+          <div className="text-6xl mb-4">✍️</div>
+          <h2 className="font-display text-2xl font-bold text-gray-700 mb-2">No posts yet</h2>
+          <p className="text-gray-500 mb-6">Write your first blog post to attract plant lovers.</p>
+          <Link href="/admin/blog/new" className="btn btn-primary btn-lg">Write First Post</Link>
+        </div>
+      ) : (
+        <div className="card overflow-hidden">
+          <div className="divide-y divide-gray-50">
+            {posts.map((post) => (
+              <div key={post.id} className="flex items-center gap-4 p-5 hover:bg-gray-50 transition-colors">
+
+                {/* Cover thumbnail */}
+                <div className="w-20 h-14 rounded-xl overflow-hidden bg-gradient-to-br from-forest-50 to-sage-50 shrink-0">
+                  {post.coverImage ? (
+                    <Image src={post.coverImage} alt={post.title} width={80} height={56} className="object-cover w-full h-full"/>
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-2xl opacity-40">📝</div>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`badge text-2xs ${post.isPublished ? "badge-green" : "badge-gold"}`}>
+                      {post.isPublished ? "✅ Published" : "📝 Draft"}
+                    </span>
+                    <span className="badge badge-cream text-2xs">{post.category}</span>
+                    <span className="text-2xs text-gray-400">{post.readTime} min read</span>
+                  </div>
+                  <h3 className="font-display font-bold text-gray-900 truncate">{post.title}</h3>
+                  <p className="text-xs text-gray-400 truncate mt-0.5">{post.excerpt}</p>
+                  <div className="flex items-center gap-3 mt-1">
+                    <span className="text-2xs text-gray-400">
+                      {post.publishedAt
+                        ? `Published ${new Date(post.publishedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}`
+                        : `Created ${new Date(post.createdAt).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}`}
+                    </span>
+                    <span className="text-2xs text-gray-300">·</span>
+                    <span className="text-2xs text-gray-400">👁 {post.viewCount ?? 0} views</span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {post.isPublished && (
+                    <a href={`/blog/${post.slug}`} target="_blank" rel="noopener noreferrer"
+                      className="btn btn-ghost btn-sm text-xs text-gray-500">
+                      View ↗
+                    </a>
+                  )}
+                  <Link href={`/admin/blog/edit/${post.id}`} className="btn btn-secondary btn-sm text-xs">
+                    ✏️ Edit
+                  </Link>
+                  <BlogPostActions id={post.id} isPublished={post.isPublished} slug={post.slug} />
+                </div>
+              </div>
+            ))}
           </div>
-        </section>
-        <section className="section">
-          <div className="container">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {POSTS.map((p) => <BlogCard key={p.id} {...p}/>)}
-            </div>
-          </div>
-        </section>
-      </main>
-      <Footer/>
-    </>
+        </div>
+      )}
+    </div>
   );
 }
