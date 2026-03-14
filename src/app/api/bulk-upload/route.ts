@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { randomUUID } from "crypto";
+import { notifyBulkUpload } from "@/lib/whatsapp";
 
 function makeSlug(text: string) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -89,6 +90,9 @@ export async function POST(request: Request) {
         },
       });
     } catch {}
+
+    // Send WhatsApp notification (non-blocking)
+    notifyBulkUpload(rows.length, successCount, errors.length, batchId).catch(console.error);
 
     return NextResponse.json({ success: true, batchId, total: rows.length, imported: successCount, failed: errors.length, errors: errors.slice(0, 50) });
   } catch (err: any) {

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { notifyNewNursery } from "@/lib/whatsapp";
 
 function makeSlug(text: string) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -77,6 +78,15 @@ export async function POST(request: Request) {
       where: { id: city.id },
       data:  { nurseryCount: { increment: 1 } },
     });
+
+    // Send WhatsApp notification (non-blocking)
+    notifyNewNursery({
+      name:    nursery.name,
+      phone:   nursery.phone ?? "",
+      city:    city.name,
+      address: nursery.address,
+      slug:    nursery.slug,
+    }).catch(console.error);
 
     return NextResponse.json({ success: true, id: nursery.id, slug: nursery.slug }, { status: 201 });
   } catch (err: any) {

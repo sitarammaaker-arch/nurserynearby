@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { notifyNewBlogPost } from "@/lib/whatsapp";
 
 function makeSlug(text: string) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -68,6 +69,11 @@ export async function POST(request: Request) {
       },
     });
 
+    // Notify if published
+    if (isPublished) {
+      notifyNewBlogPost({ title: post.title, category: post.category, slug: post.slug }).catch(console.error);
+    }
+
     return NextResponse.json({ success: true, post }, { status: 201 });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -103,6 +109,11 @@ export async function PUT(request: Request) {
         author:      author?.trim() || existing.author,
       },
     });
+
+    // Notify if newly published
+    if (isPublished && !existing.isPublished) {
+      notifyNewBlogPost({ title: post.title, category: post.category, slug: post.slug }).catch(console.error);
+    }
 
     return NextResponse.json({ success: true, post });
   } catch (err: any) {
