@@ -11,6 +11,9 @@ export default function AddListingPage() {
   const [error,   setError]     = useState("");
   const [selCats, setSelCats]   = useState<string[]>([]);
   const [images,  setImages]    = useState<{url:string;publicId:string;thumbnail:string}[]>([]);
+  const [locating, setLocating]  = useState(false);
+  const [locError, setLocError]  = useState("");
+  const [latLng,   setLatLng]    = useState({ lat: "", lng: "" });
 
   const toggleCat = (slug: string) =>
     setSelCats((p) => p.includes(slug) ? p.filter((s) => s !== slug) : [...p, slug]);
@@ -39,6 +42,8 @@ export default function AddListingPage() {
       established:  fd.get("established"),
       categories:   selCats,
       images:       images.map((img, i) => ({ url: img.url, isPrimary: i === 0 })),
+      latitude:     latLng.lat || null,
+      longitude:    latLng.lng || null,
     };
 
     try {
@@ -194,6 +199,124 @@ export default function AddListingPage() {
               <div>
                 <label className="label">Landmark</label>
                 <input name="landmark" placeholder="e.g. Near Metro Station, Opposite Shopping Mall" className="input" />
+              </div>
+
+              {/* Geotagging */}
+              <div>
+                <label className="label">
+                  GPS Location
+                  <span className="text-gray-400 normal-case font-normal text-xs ml-1">(optional — helps customers find you on map)</span>
+                </label>
+
+                {/* Get location button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!navigator.geolocation) {
+                      setLocError("Geolocation not supported by your browser");
+                      return;
+                    }
+                    setLocating(true);
+                    setLocError("");
+                    navigator.geolocation.getCurrentPosition(
+                      (pos) => {
+                        setLatLng({
+                          lat: pos.coords.latitude.toFixed(6),
+                          lng: pos.coords.longitude.toFixed(6),
+                        });
+                        setLocating(false);
+                      },
+                      (err) => {
+                        setLocError("Could not get location. Please enter manually or allow location access.");
+                        setLocating(false);
+                      },
+                      { enableHighAccuracy: true, timeout: 10000 }
+                    );
+                  }}
+                  className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-semibold border-2 transition-all mb-3 ${
+                    latLng.lat
+                      ? "border-forest bg-forest-50 text-forest"
+                      : "border-gray-200 hover:border-forest-300 hover:bg-gray-50 text-gray-700"
+                  }`}
+                >
+                  {locating ? (
+                    <>
+                      <svg className="animate-spin w-4 h-4 text-forest" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="30 70"/>
+                      </svg>
+                      Getting your location…
+                    </>
+                  ) : latLng.lat ? (
+                    <>
+                      <svg viewBox="0 0 24 24" className="w-4 h-4 fill-forest">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/>
+                      </svg>
+                      ✓ Location captured — click to update
+                    </>
+                  ) : (
+                    <>
+                      <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
+                        <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5S10.62 6.5 12 6.5s2.5 1.12 2.5 2.5S13.38 11.5 12 11.5z"/>
+                      </svg>
+                      📍 Use My Current Location
+                    </>
+                  )}
+                </button>
+
+                {/* Show captured coordinates */}
+                {latLng.lat && (
+                  <div className="flex items-center gap-2 mb-3 bg-forest-50 border border-forest-100 rounded-xl px-4 py-2.5">
+                    <span className="text-forest text-lg">📌</span>
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-forest">Location captured!</p>
+                      <p className="text-2xs text-gray-500">Lat: {latLng.lat} · Lng: {latLng.lng}</p>
+                    </div>
+                    <button type="button" onClick={() => setLatLng({ lat: "", lng: "" })}
+                      className="text-gray-400 hover:text-red-500 text-xs font-bold">✕ Clear</button>
+                  </div>
+                )}
+
+                {/* Error */}
+                {locError && (
+                  <p className="text-xs text-red-600 mb-3 flex items-center gap-1">
+                    <span>⚠️</span> {locError}
+                  </p>
+                )}
+
+                {/* Manual entry */}
+                <details className="group">
+                  <summary className="text-xs text-forest cursor-pointer hover:underline select-none list-none flex items-center gap-1">
+                    <svg viewBox="0 0 24 24" className="w-3 h-3 fill-current transition-transform group-open:rotate-90">
+                      <path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/>
+                    </svg>
+                    Or enter coordinates manually
+                  </summary>
+                  <div className="grid grid-cols-2 gap-3 mt-3">
+                    <div>
+                      <label className="label text-2xs">Latitude</label>
+                      <input
+                        type="number" step="0.000001"
+                        value={latLng.lat}
+                        onChange={(e) => setLatLng((p) => ({ ...p, lat: e.target.value }))}
+                        placeholder="e.g. 28.704060"
+                        className="input text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="label text-2xs">Longitude</label>
+                      <input
+                        type="number" step="0.000001"
+                        value={latLng.lng}
+                        onChange={(e) => setLatLng((p) => ({ ...p, lng: e.target.value }))}
+                        placeholder="e.g. 77.102493"
+                        className="input text-sm"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-2xs text-gray-400 mt-2">
+                    💡 Find coordinates: Open Google Maps → right-click your location → copy the numbers
+                  </p>
+                </details>
               </div>
             </div>
 
