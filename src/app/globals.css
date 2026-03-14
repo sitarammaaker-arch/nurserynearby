@@ -101,7 +101,7 @@
 
   /* ─── Badges ─── */
   .badge {
-    @apply inline-flex items-center gap-1.5 text-2xs font-bold uppercase tracking-wider
+    @apply inline-flex items-center gap-1.5 text-xs font-semibold
            px-2.5 py-1 rounded-full;
   }
   .badge-green  { @apply badge bg-forest-50 text-forest-700 border border-forest-100; }

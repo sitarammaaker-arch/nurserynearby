@@ -195,15 +195,24 @@ export default async function CityPage({ params, searchParams }: Props) {
         {/* Category pills */}
         <div className="sticky top-[104px] z-30 bg-white border-b border-gray-100 shadow-sm">
           <div className="container py-3">
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-0.5">
               <Link href={`/nursery/${params.city}`}
-                className={`badge shrink-0 px-4 py-2 text-xs transition-all ${!searchParams.category ? "bg-forest text-white" : "badge-cream hover:badge-green"}`}>
-                All Types
+                className={`inline-flex items-center gap-1.5 shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${
+                  !searchParams.category
+                    ? "bg-forest text-white shadow-sm"
+                    : "bg-gray-100 text-gray-700 hover:bg-forest-50 hover:text-forest"
+                }`}>
+                🌿 All Types
               </Link>
               {CATEGORIES.map((c) => (
                 <Link key={c.slug} href={`/nursery/${params.city}/${c.slug}`}
-                  className={`badge shrink-0 px-4 py-2 text-xs transition-all ${searchParams.category === c.slug ? "bg-forest text-white" : "badge-cream hover:badge-green"}`}>
-                  {c.icon} {c.name}
+                  className={`inline-flex items-center gap-1.5 shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${
+                    searchParams.category === c.slug
+                      ? "bg-forest text-white shadow-sm"
+                      : "bg-gray-100 text-gray-700 hover:bg-forest-50 hover:text-forest"
+                  }`}>
+                  <span className="text-base leading-none">{c.icon}</span>
+                  {c.name}
                 </Link>
               ))}
             </div>

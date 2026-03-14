@@ -110,8 +110,13 @@ export default async function CityCategoryPage({ params, searchParams }: Props) 
             <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-4 mb-8">
               {CATEGORIES.map((c) => (
                 <a key={c.slug} href={`/nursery/${params.city}/${c.slug}`}
-                  className={`badge shrink-0 px-4 py-2 text-xs transition-all ${c.slug === params.category ? "bg-forest text-white" : "badge-cream hover:badge-green"}`}>
-                  {c.icon} {c.name}
+                  className={`inline-flex items-center gap-1.5 shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${
+                    c.slug === params.category
+                      ? "bg-forest text-white shadow-sm"
+                      : "bg-gray-100 text-gray-700 hover:bg-forest-50 hover:text-forest"
+                  }`}>
+                  <span className="text-base leading-none">{c.icon}</span>
+                  {c.name}
                 </a>
               ))}
             </div>
