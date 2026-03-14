@@ -194,24 +194,24 @@ export default async function CityPage({ params, searchParams }: Props) {
           </div>
         </section>
 
-        {/* Category pills */}
-        <div className="sticky top-[104px] z-30 bg-white border-b border-gray-100 shadow-sm">
-          <div className="container py-3">
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-0.5">
+        {/* Category pills — Fix 1: correct sticky offset, Fix 2: scroll on all screens, Fix 3: clean shadow */}
+        <div className="sticky z-20 bg-white border-b border-gray-100" style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+          <div className="container">
+            <div className="flex gap-2 py-3 overflow-x-auto" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
               <Link href={`/nursery/${params.city}`}
-                className={`inline-flex items-center gap-1.5 shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${
+                className={`inline-flex items-center gap-1.5 shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap border ${
                   !searchParams.category
-                    ? "bg-forest text-white shadow-sm"
-                    : "bg-gray-100 text-gray-700 hover:bg-forest-50 hover:text-forest"
+                    ? "bg-forest text-white border-forest"
+                    : "bg-white text-gray-600 border-gray-200 hover:border-forest hover:text-forest"
                 }`}>
                 🌿 All Types
               </Link>
               {CATEGORIES.map((c) => (
                 <Link key={c.slug} href={`/nursery/${params.city}/${c.slug}`}
-                  className={`inline-flex items-center gap-1.5 shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${
+                  className={`inline-flex items-center gap-1.5 shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap border ${
                     searchParams.category === c.slug
-                      ? "bg-forest text-white shadow-sm"
-                      : "bg-gray-100 text-gray-700 hover:bg-forest-50 hover:text-forest"
+                      ? "bg-forest text-white border-forest"
+                      : "bg-white text-gray-600 border-gray-200 hover:border-forest hover:text-forest"
                   }`}>
                   <span className="text-base leading-none">{c.icon}</span>
                   {c.name}

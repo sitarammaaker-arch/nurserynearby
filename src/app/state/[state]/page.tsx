@@ -192,16 +192,16 @@ export default async function StatePage({ params }: Props) {
         )}
 
         {/* Category filter */}
-        <section className="sticky top-[104px] z-30 bg-white border-b border-gray-100 shadow-sm">
+        <section className="sticky z-20 bg-white border-b border-gray-100 shadow-sm">
           <div className="container py-3">
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+            <div className="flex gap-2 py-3 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
               <Link href={`/state/${params.state}`}
-                className="badge shrink-0 px-4 py-2 text-xs bg-forest text-white">
+                className="inline-flex items-center gap-1.5 shrink-0 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap border bg-forest text-white border-forest">
                 All Types
               </Link>
               {CATEGORIES.map((c) => (
                 <Link key={c.slug} href={`/state/${params.state}?category=${c.slug}`}
-                  className="badge shrink-0 px-4 py-2 text-xs badge-cream hover:badge-green transition-all">
+                  className="inline-flex items-center gap-1.5 shrink-0 px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap border bg-white text-gray-600 border-gray-200 hover:border-forest hover:text-forest transition-all">
                   {c.icon} {c.name}
                 </Link>
               ))}

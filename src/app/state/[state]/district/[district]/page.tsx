@@ -130,9 +130,9 @@ export default async function DistrictPage({ params, searchParams }: Props) {
         </section>
 
         {/* Category filter */}
-        <div className="sticky top-[104px] z-30 bg-white border-b border-gray-100 shadow-sm">
+        <div className="sticky z-20 bg-white border-b border-gray-100 shadow-sm">
           <div className="container py-3">
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+            <div className="flex gap-2 py-3 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
               <Link href={`/state/${params.state}/district/${params.district}`}
                 className={`badge shrink-0 px-4 py-2 text-xs transition-all ${!searchParams.category ? "bg-forest text-white" : "badge-cream hover:badge-green"}`}>
                 All Types

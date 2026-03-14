@@ -109,7 +109,7 @@ export default async function CityCategoryPage({ params, searchParams }: Props) 
         <section className="py-10">
           <div className="container">
             {/* Category siblings */}
-            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-4 mb-8">
+            <div className="flex gap-2 pb-4 mb-8 overflow-x-auto" style={{ scrollbarWidth: "none" }}>
               {CATEGORIES.map((c) => (
                 <a key={c.slug} href={`/nursery/${params.city}/${c.slug}`}
                   className={`inline-flex items-center gap-1.5 shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${
