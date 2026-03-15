@@ -28,10 +28,23 @@ export async function POST(request: Request) {
     });
     if (!city) return NextResponse.json({ error: "Invalid city selected" }, { status: 400 });
 
-    // Make unique slug
-    let nurserySlug = makeSlug(name);
-    const existing = await prisma.nursery.findUnique({ where: { slug: nurserySlug } });
-    if (existing) nurserySlug = `${nurserySlug}-${city.slug}-${Date.now()}`;
+    // Build SEO-rich slug: name + city + state
+    // e.g. "shiv-green-house-karnal-haryana"
+    const stateRef = city.stateId
+      ? await prisma.state.findUnique({ where: { id: city.stateId }, select: { slug: true } })
+      : null;
+
+    const baseSlug   = makeSlug(name);
+    const cityPart   = makeSlug(city.name);
+    const statePart  = stateRef?.slug ?? "";
+    const richSlug   = statePart
+      ? `${baseSlug}-${cityPart}-${statePart}`
+      : `${baseSlug}-${cityPart}`;
+
+    // Ensure uniqueness
+    let nurserySlug = richSlug;
+    const existing  = await prisma.nursery.findUnique({ where: { slug: nurserySlug } });
+    if (existing) nurserySlug = `${richSlug}-${Date.now()}`;
 
     // Resolve category IDs
     const allCategories = await prisma.category.findMany();

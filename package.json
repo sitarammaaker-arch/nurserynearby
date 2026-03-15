@@ -13,7 +13,8 @@
     "db:seed": "npx tsx prisma/seed.ts",
     "db:seed:location": "npx tsx prisma/seed-location.ts",
     "db:seed:all": "npm run db:seed && npm run db:seed:location",
-    "db:link:locations": "npx tsx prisma/link-cities-districts.ts"
+    "db:link:locations": "npx tsx prisma/link-cities-districts.ts",
+    "db:enrich:slugs": "npx tsx prisma/enrich-slugs.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.10.0",
