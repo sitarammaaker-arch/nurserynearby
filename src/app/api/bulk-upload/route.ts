@@ -7,21 +7,40 @@ function makeSlug(text: string) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
-// Fix scientific notation phone numbers like 9.19541E+11 → 919541000000
+// Fix scientific notation phone numbers like 9.19541E+11 → store clean 10-digit
 function fixPhone(raw: string): string {
   if (!raw) return "";
   const trimmed = raw.trim();
-  // Scientific notation check
+
+  let digits = trimmed;
+
+  // Scientific notation → convert to full number first
   if (/\d+\.?\d*[eE][+\-]?\d+/.test(trimmed)) {
     try {
       const num = Number(trimmed);
       if (!isNaN(num) && num > 0) {
-        return String(Math.round(num));
+        digits = String(Math.round(num));
       }
     } catch {}
+  } else {
+    // Remove all non-digits
+    digits = trimmed.replace(/\D/g, "");
   }
-  // Remove spaces/dashes but keep +
-  return trimmed.replace(/[\s\-()]/g, "");
+
+  if (!digits) return "";
+
+  // Strip country code 91 to store clean 10-digit number
+  if (digits.startsWith("91") && digits.length === 12) {
+    return digits.slice(2); // store as 10-digit: 9810123456
+  }
+  if (digits.startsWith("0") && digits.length === 11) {
+    return digits.slice(1); // strip leading 0
+  }
+  if (digits.length === 10) {
+    return digits; // already clean
+  }
+
+  return digits; // return whatever we have
 }
 
 // Auto-create city if it doesn't exist, linked to state

@@ -9,8 +9,31 @@ export function slug(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
-export function formatPhone(p: string) {
-  return p.replace(/(\d{5})(\d{5})/, "$1 $2");
+export function formatPhone(raw: string): string {
+  if (!raw) return "";
+  const digits = raw.replace(/\D/g, "");
+  if (!digits) return raw;
+
+  // 12-digit with 91 prefix → strip country code, format local
+  let local = digits;
+  if (digits.startsWith("91") && digits.length === 12) {
+    local = digits.slice(2);
+  } else if (digits.startsWith("0") && digits.length === 11) {
+    local = digits.slice(1);
+  }
+
+  // 10-digit Indian mobile → +91 98101 23456
+  if (local.length === 10) {
+    return `+91 ${local.slice(0, 5)} ${local.slice(5)}`;
+  }
+
+  // Already has + prefix
+  if (raw.startsWith("+")) return raw;
+
+  // Starts with 91 but odd length → add +
+  if (digits.startsWith("91")) return `+${digits}`;
+
+  return raw;
 }
 
 export const SITE = {

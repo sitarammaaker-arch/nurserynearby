@@ -6,7 +6,7 @@ import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/shared/Footer";
 import { Stars, ReviewCard } from "@/components/ui/Cards";
 import { prisma } from "@/lib/prisma";
-import { SITE, CATEGORIES } from "@/lib/utils";
+import { SITE, CATEGORIES, formatPhone } from "@/lib/utils";
 import { listingPageMeta, listingSchema, breadcrumbSchema } from "@/lib/seo";
 
 interface Props { params: { slug: string } }
@@ -150,8 +150,8 @@ export default async function ListingPage({ params }: Props) {
         </div>
 
         {/* Quick action bar */}
-        <div className="bg-white border-b border-gray-100 shadow-sm sticky top-[104px] z-20">
-          <div className="container py-3 flex items-center gap-3 overflow-x-auto scrollbar-hide">
+        <div className="bg-white border-b border-gray-100 sticky top-16 z-20">
+          <div className="container py-3 flex items-center gap-3 overflow-x-auto">
             {nursery.phone && (
               <a href={`tel:${nursery.phone}`} className="btn btn-primary btn-sm shrink-0">
                 <svg viewBox="0 0 24 24" className="w-4 h-4 fill-current">
@@ -323,7 +323,7 @@ export default async function ListingPage({ params }: Props) {
                     </div>
                     <div>
                       <p className="text-2xs text-gray-500">Alt Phone</p>
-                      <p className="text-sm font-semibold text-gray-700">{nursery.phone2}</p>
+                      <p className="text-sm font-semibold text-gray-700">{formatPhone(nursery.phone2)}</p>
                     </div>
                   </a>
                 )}
@@ -338,7 +338,7 @@ export default async function ListingPage({ params }: Props) {
                     </div>
                     <div>
                       <p className="text-2xs text-gray-500">WhatsApp</p>
-                      <p className="text-sm font-semibold text-gray-700">+{nursery.whatsapp}</p>
+                      <p className="text-sm font-semibold text-gray-700">{formatPhone(nursery.whatsapp)}</p>
                     </div>
                   </a>
                 )}
