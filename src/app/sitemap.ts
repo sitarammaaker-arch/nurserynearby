@@ -45,6 +45,34 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }))
   );
 
+  // ── State pages ───────────────────────────────────────────
+  let statePages:    MetadataRoute.Sitemap = [];
+  let districtPages: MetadataRoute.Sitemap = [];
+
+  try {
+    const states = await prisma.state.findMany({
+      where: { isActive: true },
+      select: { slug: true, updatedAt: false },
+    });
+    statePages = states.map((s: any) => ({
+      url:             `${base}/${s.slug}`,
+      lastModified:    new Date(),
+      changeFrequency: "weekly" as const,
+      priority:        0.85,
+    }));
+
+    const districts = await prisma.district.findMany({
+      where:   { isActive: true },
+      include: { state: { select: { slug: true } } },
+    });
+    districtPages = districts.map((d: any) => ({
+      url:             `${base}/${d.state.slug}/${d.slug}`,
+      lastModified:    new Date(),
+      changeFrequency: "weekly" as const,
+      priority:        0.80,
+    }));
+  } catch {}
+
   // ── Dynamic pages from DB ─────────────────────────────────
   let nurseryPages: MetadataRoute.Sitemap = [];
   let blogPages:    MetadataRoute.Sitemap = [];
@@ -84,6 +112,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // ── Combine all — most important first ────────────────────
   return [
     ...statics,
+    ...statePages,
+    ...districtPages,
     ...cityPages,
     ...cityCategory,
     ...categoryPages,
