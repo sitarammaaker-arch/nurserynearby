@@ -52,7 +52,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   try {
     const states = await prisma.state.findMany({
       where: { isActive: true },
-      select: { slug: true, updatedAt: false },
+      select: { slug: true },
     });
     statePages = states.map((s: any) => ({
       url:             `${base}/${s.slug}`,
