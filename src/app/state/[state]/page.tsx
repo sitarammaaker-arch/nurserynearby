@@ -39,12 +39,24 @@ export default async function StatePage({ params }: Props) {
     });
     if (!state) notFound();
 
-    // Get districts with nursery counts
-    districts = await prisma.district.findMany({
+    // Get districts — count nurseries via cities (since districtId on nursery may be null)
+    const rawDistricts = await prisma.district.findMany({
       where:   { stateId: state.id, isActive: true },
-      include: { _count: { select: { nurseries: true } } },
+      include: {
+        cities: {
+          select: { _count: { select: { nurseries: true } } },
+        },
+      },
       orderBy: { name: "asc" },
     });
+
+    // Sum nursery counts from all cities in each district
+    districts = rawDistricts.map((d: any) => ({
+      ...d,
+      nurseryCount: d.cities.reduce(
+        (sum: number, city: any) => sum + (city._count?.nurseries ?? 0), 0
+      ),
+    }));
 
     // Get cities in this state
     cities = await prisma.city.findMany({

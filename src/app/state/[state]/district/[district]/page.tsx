@@ -48,10 +48,17 @@ export default async function DistrictPage({ params, searchParams }: Props) {
     });
     if (!district) notFound();
 
-    // Nurseries in this district
+    // Nurseries in this district — via city link (districtId on nursery may be null)
     const where: any = {
-      isActive:   true,
-      districtId: district.id,
+      isActive: true,
+      OR: [
+        { districtId: district.id },          // direct link
+        { city: { districtId: district.id } }, // via city
+        { city: {                              // city name matches district name
+            name: { equals: district.name, mode: "insensitive" }
+          }
+        },
+      ],
     };
     if (searchParams.category) {
       where.categories = { some: { category: { slug: searchParams.category } } };
@@ -68,13 +75,19 @@ export default async function DistrictPage({ params, searchParams }: Props) {
       take:    12,
     });
 
-    // Nearby districts
-    nearbyDistricts = await prisma.district.findMany({
+    // Nearby districts — count via cities
+    const rawNearby = await prisma.district.findMany({
       where:   { stateId: state.id, id: { not: district.id } },
-      include: { _count: { select: { nurseries: true } } },
+      include: { cities: { select: { _count: { select: { nurseries: true } } } } },
       orderBy: { name: "asc" },
       take:    10,
     });
+    nearbyDistricts = rawNearby.map((d: any) => ({
+      ...d,
+      nurseryCount: d.cities.reduce(
+        (sum: number, city: any) => sum + (city._count?.nurseries ?? 0), 0
+      ),
+    }));
   } catch (e) {
     console.error(e);
     if (!state || !district) notFound();
