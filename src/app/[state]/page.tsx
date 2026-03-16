@@ -39,24 +39,40 @@ export default async function StatePage({ params }: Props) {
     });
     if (!state) notFound();
 
-    // Get districts — count nurseries via cities (since districtId on nursery may be null)
+    // Get districts — count nurseries via cities
     const rawDistricts = await prisma.district.findMany({
       where:   { stateId: state.id, isActive: true },
       include: {
-        cities: {
-          select: { _count: { select: { nurseries: true } } },
-        },
+        cities: { select: { _count: { select: { nurseries: true } } } },
       },
       orderBy: { name: "asc" },
     });
 
-    // Sum nursery counts from all cities in each district
     districts = rawDistricts.map((d: any) => ({
       ...d,
       nurseryCount: d.cities.reduce(
         (sum: number, city: any) => sum + (city._count?.nurseries ?? 0), 0
       ),
     }));
+
+    // If no districts linked — build district list from cities themselves
+    // (happens when bulk-uploaded nurseries have cities not linked to districts)
+    if (districts.every((d: any) => d.nurseryCount === 0)) {
+      const citiesWithNurseries = await prisma.city.findMany({
+        where:   { stateId: state.id, isActive: true, nurseries: { some: { isActive: true } } },
+        include: { _count: { select: { nurseries: true } } },
+        orderBy: { nurseryCount: "desc" },
+      });
+      // Map each city as a virtual "district" so they appear in Browse by District
+      districts = citiesWithNurseries.map((c: any) => ({
+        id:           c.id,
+        name:         c.name,
+        slug:         c.slug,
+        stateId:      c.stateId,
+        nurseryCount: c._count?.nurseries ?? 0,
+        isCity:       true, // flag to use city URL
+      }));
+    }
 
     // Get cities in this state
     cities = await prisma.city.findMany({
@@ -164,7 +180,7 @@ export default async function StatePage({ params }: Props) {
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
                 {districts.map((dist: any) => (
                   <Link key={dist.id}
-                    href={`/${params.state}/${dist.slug}`}
+                    href={(dist as any).isCity ? `/nursery/${dist.slug}` : `/${params.state}/${dist.slug}`}
                     className="group card-hover p-4 flex flex-col gap-1.5">
                     <h3 className="font-semibold text-sm text-gray-800 group-hover:text-forest transition-colors leading-tight">
                       {dist.name}

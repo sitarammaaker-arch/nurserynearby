@@ -10,7 +10,8 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const {
-      name, phone, address, cityId,
+      name, phone, address,
+      cityId, cityName, stateName, districtName,
       categories = [], tagline, description,
       whatsapp, email, website, area,
       landmark, pincode, openingHours, closedOn, established,
@@ -20,13 +21,57 @@ export async function POST(request: Request) {
     if (!name?.trim())    return NextResponse.json({ error: "Nursery name is required" },  { status: 400 });
     if (!phone?.trim())   return NextResponse.json({ error: "Phone number is required" },  { status: 400 });
     if (!address?.trim()) return NextResponse.json({ error: "Address is required" },        { status: 400 });
-    if (!cityId)          return NextResponse.json({ error: "City is required" },           { status: 400 });
+    if (!cityId && !cityName) return NextResponse.json({ error: "City is required" }, { status: 400 });
 
-    // Find city by slug or id
-    const city = await prisma.city.findFirst({
-      where: { OR: [{ slug: cityId }, { id: cityId }] },
+    // Resolve city — by id/slug first, then by name, then auto-create
+    let city = await prisma.city.findFirst({
+      where: {
+        OR: [
+          ...(cityId ? [{ slug: cityId }, { id: cityId }] : []),
+          ...(cityName ? [{ name: { equals: cityName, mode: "insensitive" as const } }] : []),
+        ],
+      },
+      include: { stateRef: true },
     });
-    if (!city) return NextResponse.json({ error: "Invalid city selected" }, { status: 400 });
+
+    // Auto-create city if not found
+    if (!city && (cityName || districtName)) {
+      const resolvedName = (cityName || districtName).trim();
+
+      // Find state
+      let stateId: string | undefined;
+      if (stateName) {
+        const stateRec = await prisma.state.findFirst({
+          where: { name: { equals: stateName, mode: "insensitive" } },
+        });
+        stateId = stateRec?.id;
+      }
+
+      // Find district
+      let districtId: string | undefined;
+      if (districtName && stateId) {
+        const distRec = await prisma.district.findFirst({
+          where: { name: { equals: districtName, mode: "insensitive" }, stateId },
+        });
+        districtId = distRec?.id;
+      }
+
+      const slug    = resolvedName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const existing = await prisma.city.findUnique({ where: { slug } });
+      city = await prisma.city.create({
+        data: {
+          name:       resolvedName,
+          slug:       existing ? `${slug}-${Date.now()}` : slug,
+          state:      stateName ?? "India",
+          stateId,
+          districtId,
+          isActive:   true,
+        },
+        include: { stateRef: true },
+      });
+    }
+
+    if (!city) return NextResponse.json({ error: "City is required" }, { status: 400 });
 
     // Build SEO-rich slug: name + city + state
     // e.g. "shiv-green-house-karnal-haryana"

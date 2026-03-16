@@ -14,6 +14,33 @@ export default function AddListingPage() {
   const [locating, setLocating]  = useState(false);
   const [locError, setLocError]  = useState("");
   const [latLng,   setLatLng]    = useState({ lat: "", lng: "" });
+  const [pincode,  setPincode]   = useState("");
+  const [pinLookup,setPinLookup] = useState<any>(null);
+  const [pinLoading,setPinLoading] = useState(false);
+  const [pinError,  setPinError]  = useState("");
+  const [cityInput, setCityInput] = useState("");
+  const [stateInput,setStateInput]= useState("");
+  const [distInput, setDistInput] = useState("");
+
+  async function lookupPincode(pin: string) {
+    if (pin.length !== 6) return;
+    setPinLoading(true); setPinError(""); setPinLookup(null);
+    try {
+      const res  = await fetch(`/api/pincode-lookup?pin=${pin}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Not found");
+      setPinLookup(data);
+      if (data.state)    setStateInput(data.state);
+      if (data.district) setDistInput(data.district);
+      // Use matched city from DB or district name as city
+      if (data.cityDb?.name) setCityInput(data.cityDb.name);
+      else if (data.district)  setCityInput(data.district);
+    } catch (e: any) {
+      setPinError(e.message);
+    } finally {
+      setPinLoading(false);
+    }
+  }
 
   const toggleCat = (slug: string) =>
     setSelCats((p) => p.includes(slug) ? p.filter((s) => s !== slug) : [...p, slug]);
@@ -37,7 +64,10 @@ export default function AddListingPage() {
       area:         fd.get("area"),
       landmark:     fd.get("landmark"),
       pincode:      fd.get("pincode"),
-      cityId:       fd.get("cityId"),
+      cityId:       pinLookup?.cityDb?.id ?? pinLookup?.cityDb?.slug ?? fd.get("cityId") ?? cityInput,
+      cityName:     cityInput || distInput,
+      stateName:    stateInput,
+      districtName: distInput,
       openingHours: fd.get("openingHours"),
       established:  fd.get("established"),
       categories:   selCats,
@@ -170,35 +200,119 @@ export default function AddListingPage() {
                 Location
               </h2>
 
+              {/* STEP 1 — Pincode auto-detect */}
               <div>
-                <label className="label">City <span className="text-red-500">*</span></label>
-                <select name="cityId" required className="select input-lg">
-                  <option value="">— Select your city —</option>
-                  {CITIES.map((c) => (
-                    <option key={c.slug} value={c.slug}>{c.emoji} {c.name}, {c.state}</option>
-                  ))}
-                </select>
+                <label className="label">
+                  Pincode <span className="text-red-500">*</span>
+                  <span className="text-gray-400 normal-case font-normal text-xs ml-1">
+                    (6-digit — auto-fills State, District & City)
+                  </span>
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    name="pincode"
+                    value={pincode}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g,"").slice(0,6);
+                      setPincode(val);
+                      if (val.length === 6) lookupPincode(val);
+                      else { setPinLookup(null); setPinError(""); }
+                    }}
+                    placeholder="110001"
+                    maxLength={6}
+                    className="input flex-1 text-lg font-semibold tracking-widest"
+                  />
+                  {pinLoading && (
+                    <div className="flex items-center px-3">
+                      <svg className="animate-spin w-5 h-5 text-forest" viewBox="0 0 24 24" fill="none">
+                        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="30 70"/>
+                      </svg>
+                    </div>
+                  )}
+                </div>
+                {pinError && <p className="text-xs text-red-500 mt-1">⚠️ {pinError} — please fill manually below</p>}
+
+                {/* Auto-detected location */}
+                {pinLookup && (
+                  <div className="mt-3 bg-forest-50 border border-forest-100 rounded-xl p-4 space-y-1">
+                    <p className="text-xs font-bold text-forest uppercase tracking-wider mb-2">✅ Location Detected</p>
+                    <div className="grid grid-cols-3 gap-3 text-sm">
+                      <div>
+                        <p className="text-2xs text-gray-400 uppercase tracking-wide">State</p>
+                        <p className="font-semibold text-gray-800">{pinLookup.state}</p>
+                      </div>
+                      <div>
+                        <p className="text-2xs text-gray-400 uppercase tracking-wide">District</p>
+                        <p className="font-semibold text-gray-800">{pinLookup.district}</p>
+                      </div>
+                      <div>
+                        <p className="text-2xs text-gray-400 uppercase tracking-wide">City/Town</p>
+                        <p className="font-semibold text-gray-800">{cityInput}</p>
+                      </div>
+                    </div>
+                    {pinLookup.postOffices?.length > 0 && (
+                      <p className="text-2xs text-gray-400 mt-2">
+                        Post offices: {pinLookup.postOffices.join(", ")}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
+
+              {/* STEP 2 — Manual overrides if pincode lookup fails */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div>
+                  <label className="label">State <span className="text-red-500">*</span></label>
+                  <input
+                    name="stateName"
+                    value={stateInput}
+                    onChange={(e) => setStateInput(e.target.value)}
+                    required
+                    placeholder="e.g. Haryana"
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="label">District <span className="text-red-500">*</span></label>
+                  <input
+                    name="districtName"
+                    value={distInput}
+                    onChange={(e) => setDistInput(e.target.value)}
+                    required
+                    placeholder="e.g. Karnal"
+                    className="input"
+                  />
+                </div>
+                <div>
+                  <label className="label">City / Town <span className="text-red-500">*</span></label>
+                  <input
+                    name="cityName"
+                    value={cityInput}
+                    onChange={(e) => setCityInput(e.target.value)}
+                    required
+                    placeholder="e.g. Karnal"
+                    className="input"
+                  />
+                </div>
+              </div>
+
+              {/* Hidden legacy field for backward compat */}
+              <input type="hidden" name="cityId" value={pinLookup?.cityDb?.id ?? cityInput} />
 
               <div>
                 <label className="label">Full Address <span className="text-red-500">*</span></label>
-                <input name="address" required placeholder="e.g. 15, Model Town Phase 2" className="input" />
+                <input name="address" required placeholder="e.g. 15, Model Town Phase 2, Near Bus Stand" className="input" />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="label">Area / Locality</label>
-                  <input name="area" placeholder="e.g. Model Town" className="input" />
+                  <input name="area" placeholder="e.g. Model Town, Sector 10" className="input" />
                 </div>
                 <div>
-                  <label className="label">Pincode</label>
-                  <input name="pincode" placeholder="110001" maxLength={6} className="input" />
+                  <label className="label">Landmark</label>
+                  <input name="landmark" placeholder="e.g. Near Metro Station" className="input" />
                 </div>
-              </div>
-
-              <div>
-                <label className="label">Landmark</label>
-                <input name="landmark" placeholder="e.g. Near Metro Station, Opposite Shopping Mall" className="input" />
               </div>
 
               {/* Geotagging */}
