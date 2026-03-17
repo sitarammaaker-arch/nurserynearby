@@ -160,16 +160,17 @@ model NurseryCategory {
 }
 
 model Review {
-  id         String   @id @default(cuid())
-  rating     Int
-  title      String?
-  comment    String?
-  nurseryId  String
-  userId     String
-  isApproved Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  nursery    Nursery  @relation(fields: [nurseryId], references: [id], onDelete: Cascade)
-  user       User     @relation(fields: [userId],    references: [id])
+  id           String   @id @default(cuid())
+  rating       Int
+  title        String?
+  comment      String?
+  reviewerName String?
+  nurseryId    String
+  userId       String?
+  isApproved   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  nursery      Nursery  @relation(fields: [nurseryId], references: [id], onDelete: Cascade)
+  user         User?    @relation(fields: [userId],    references: [id])
   @@map("reviews")
 }
 
