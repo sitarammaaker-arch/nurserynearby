@@ -91,6 +91,7 @@ export default function Footer() {
             <ul className="space-y-2">
               {[
                 { l: "About Us",       h: "/about" },
+                { l: "Reviews",        h: "/reviews" },
                 { l: "Browse by State",  h: "/states" },
                 { l: "Add Listing",    h: "/add-listing" },
                 { l: "Blog",           h: "/blog" },
