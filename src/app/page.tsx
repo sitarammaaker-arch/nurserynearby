@@ -349,22 +349,46 @@ export default async function HomePage() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
+                {/* 4 equal cards — no col-span, always renders correctly */}
                 {[
-                  { src:"https://images.unsplash.com/photo-1585320806297-9794b3e4aaae?w=600&q=80", wide: true  },
-                  { src:"https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&q=80", wide: false },
-                  { src:"https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?w=400&q=80", wide: false },
-                  { src:"https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80", wide: false },
+                  { src:"https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&q=80", label:"Outdoor Gardens" },
+                  { src:"https://images.unsplash.com/photo-1501004318641-b39e6451bec6?w=400&q=80", label:"Indoor Plants" },
+                  { src:"https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?w=400&q=80", label:"Exotic Plants" },
+                  { src:"https://images.unsplash.com/photo-1530836369250-ef72a3f5cda8?w=400&q=80", label:"Fruit Trees" },
                 ].map((item, i) => (
-                  <div key={i} className={`rounded-2xl overflow-hidden ${item.wide ? "col-span-2" : ""}`}
-                    style={{ height: item.wide ? "200px" : "160px" }}>
+                  <div key={i} className="rounded-2xl overflow-hidden relative bg-forest-50 group"
+                    style={{ height: "180px" }}>
                     <img
                       src={item.src}
-                      alt="Nursery plants"
-                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                      alt={item.label}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                       loading="lazy"
                     />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
+                      <span className="text-white text-xs font-semibold">{item.label}</span>
+                    </div>
                   </div>
                 ))}
+
+                {/* Stats row spanning full width */}
+                <div className="col-span-2 grid grid-cols-3 gap-3 mt-1">
+                  <div className="rounded-xl gradient-forest p-4 text-center">
+                    <p className="font-display text-2xl font-bold text-white">
+                      {totalNurseries > 0 ? (totalNurseries > 1000 ? Math.floor(totalNurseries/1000)+"K+" : totalNurseries+"+") : "58K+"}
+                    </p>
+                    <p className="text-forest-300 text-2xs font-medium uppercase tracking-wide mt-0.5">Nurseries</p>
+                  </div>
+                  <div className="rounded-xl bg-forest-50 border border-forest-100 p-4 text-center">
+                    <p className="font-display text-2xl font-bold text-forest-900">
+                      {totalCities > 0 ? totalCities+"+" : "250+"}
+                    </p>
+                    <p className="text-forest-600 text-2xs font-medium uppercase tracking-wide mt-0.5">Cities</p>
+                  </div>
+                  <div className="rounded-xl bg-amber-50 border border-amber-100 p-4 text-center">
+                    <p className="font-display text-2xl font-bold text-amber-900">4.8★</p>
+                    <p className="text-amber-700 text-2xs font-medium uppercase tracking-wide mt-0.5">Avg Rating</p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
