@@ -33,7 +33,7 @@ const DEMO_BLOGS = [
 const DEMO_CITIES = CITIES.map((c, i) => ({ ...c, nurseryCount: [142,118,97,54,63,41,38,79,88,52,73,65][i] ?? 50 }));
 
 const STATS = [
-  { label: "Nurseries Listed",   value: totalNurseries > 0 ? totalNurseries.toLocaleString("en-IN")+"+" : "58,000+", icon: "🌿" },
+  { label: "Nurseries Listed",   value: "58,000+", icon: "🌿" }, // updated dynamically below
   { label: "Cities Covered",     value: "120+",    icon: "🏙️" },
   { label: "Happy Customers",    value: "4.8★",    icon: "⭐" },
   { label: "Plant Varieties",    value: "50,000+", icon: "🌺" },
@@ -160,7 +160,11 @@ export default async function HomePage() {
               {STATS.map((s) => (
                 <div key={s.label} className="bg-forest px-6 py-5 text-center">
                   <span className="text-2xl block mb-1">{s.icon}</span>
-                  <span className="font-display text-2xl font-bold text-white block">{s.value}</span>
+                  <span className="font-display text-2xl font-bold text-white block">
+                    {s.label === "Nurseries Listed" && totalNurseries > 0
+                      ? totalNurseries.toLocaleString("en-IN") + "+"
+                      : s.value}
+                  </span>
                   <span className="text-2xs text-forest-300 uppercase tracking-wider font-medium">{s.label}</span>
                 </div>
               ))}
