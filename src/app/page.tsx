@@ -5,6 +5,9 @@ import Navbar from "@/components/shared/Navbar";
 import Footer from "@/components/shared/Footer";
 import { NurseryCard, CategoryCard, CityCard, BlogCard, SearchBar, Stars } from "@/components/ui/Cards";
 import { CATEGORIES, CITIES, SITE } from "@/lib/utils";
+import { prisma } from "@/lib/prisma";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: `${SITE.name} — Find Plant Nurseries Near You`,
@@ -30,13 +33,64 @@ const DEMO_BLOGS = [
 const DEMO_CITIES = CITIES.map((c, i) => ({ ...c, nurseryCount: [142,118,97,54,63,41,38,79,88,52,73,65][i] ?? 50 }));
 
 const STATS = [
-  { label: "Nurseries Listed",   value: "12,400+", icon: "🌿" },
+  { label: "Nurseries Listed",   value: totalNurseries > 0 ? totalNurseries.toLocaleString("en-IN")+"+" : "58,000+", icon: "🌿" },
   { label: "Cities Covered",     value: "120+",    icon: "🏙️" },
   { label: "Happy Customers",    value: "4.8★",    icon: "⭐" },
   { label: "Plant Varieties",    value: "50,000+", icon: "🌺" },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Fetch real featured nurseries from DB
+  let featuredNurseries: any[] = [];
+  let totalNurseries = 0;
+  try {
+    featuredNurseries = await prisma.nursery.findMany({
+      where:   { isActive: true, isFeatured: true },
+      include: {
+        city:       { select: { name: true, slug: true } },
+        categories: { include: { category: { select: { name: true } } } },
+        photos:     { where: { isPrimary: true }, take: 1 },
+      },
+      orderBy: [{ avgRating: "desc" }, { totalReviews: "desc" }],
+      take: 6,
+    });
+    // Fallback — if no featured, show top rated
+    if (featuredNurseries.length === 0) {
+      featuredNurseries = await prisma.nursery.findMany({
+        where:   { isActive: true },
+        include: {
+          city:       { select: { name: true, slug: true } },
+          categories: { include: { category: { select: { name: true } } } },
+          photos:     { where: { isPrimary: true }, take: 1 },
+        },
+        orderBy: [{ isVerified: "desc" }, { established: "asc" }],
+        take: 6,
+      });
+    }
+    totalNurseries = await prisma.nursery.count({ where: { isActive: true } });
+  } catch {}
+
+  // Map to NurseryCard format
+  const nurseryCards = featuredNurseries.map((n: any) => ({
+    id:           n.id,
+    name:         n.name,
+    slug:         n.slug,
+    tagline:      n.tagline,
+    address:      n.address,
+    area:         n.area,
+    cityName:     n.city?.name ?? "",
+    avgRating:    n.avgRating,
+    totalReviews: n.totalReviews,
+    phone:        n.phone,
+    primaryImage: n.photos?.[0]?.url ?? null,
+    isFeatured:   n.isFeatured,
+    isVerified:   n.isVerified,
+    categories:   n.categories?.map((c: any) => c.category.name) ?? [],
+    established:  n.established,
+  }));
+
+  const displayNurseries = nurseryCards.length > 0 ? nurseryCards : DEMO_NURSERIES;
+
   return (
     <>
       <Navbar/>

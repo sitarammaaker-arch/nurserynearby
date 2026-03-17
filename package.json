@@ -18,7 +18,9 @@
     "db:seed:missing": "npx tsx prisma/seed-missing-districts.ts",
     "db:seed:all-districts": "npx tsx prisma/seed-all-districts.ts",
     "db:fix:states": "npx tsx prisma/fix-state-links.ts",
-    "db:fix:all": "npx tsx prisma/seed-all-districts.ts && npx tsx prisma/fix-state-links.ts"
+    "db:fix:all": "npx tsx prisma/seed-all-districts.ts && npx tsx prisma/fix-state-links.ts",
+    "db:diagnose": "npx tsx prisma/diagnose-states.ts",
+    "db:smart-fix": "npx tsx prisma/smart-fix-states.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.10.0",
