@@ -270,17 +270,69 @@ export default async function CityPage({ params, searchParams }: Props) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
                       {nurseries.map((n) => <NurseryCard key={n.id} {...n} />)}
                     </div>
-                    {pages > 1 && (
-                      <div className="flex justify-center gap-2 mt-10">
-                        {Array.from({ length: pages }, (_, i) => i + 1).map((p) => (
-                          <Link key={p}
-                            href={`?page=${p}&sort=${sort}${searchParams.q ? "&q="+searchParams.q : ""}${searchParams.category ? "&category="+searchParams.category : ""}`}
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold transition-all ${p === page ? "gradient-forest text-white shadow-green" : "bg-white border border-gray-200 hover:border-forest"}`}>
-                            {p}
-                          </Link>
-                        ))}
-                      </div>
-                    )}
+                    {pages > 1 && (() => {
+                      const qs = (p: number) => `?page=${p}&sort=${sort}${searchParams.q ? "&q="+searchParams.q : ""}${searchParams.category ? "&category="+searchParams.category : ""}`;
+                      // Show at most 5 page numbers around current page
+                      const delta = 2;
+                      const start = Math.max(1, page - delta);
+                      const end   = Math.min(pages, page + delta);
+                      const pageNums = Array.from({ length: end - start + 1 }, (_, i) => start + i);
+                      return (
+                        <div className="flex justify-center items-center gap-2 mt-10 flex-wrap">
+                          {/* Previous */}
+                          {page > 1 ? (
+                            <Link href={qs(page - 1)}
+                              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-gray-700 hover:border-forest hover:text-forest transition-all">
+                              ← Previous
+                            </Link>
+                          ) : (
+                            <span className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-50 border border-gray-100 text-sm font-semibold text-gray-300 cursor-not-allowed">
+                              ← Previous
+                            </span>
+                          )}
+
+                          {/* First page if not in range */}
+                          {start > 1 && (
+                            <>
+                              <Link href={qs(1)} className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold bg-white border border-gray-200 hover:border-forest hover:text-forest transition-all">1</Link>
+                              {start > 2 && <span className="text-gray-400 px-1">…</span>}
+                            </>
+                          )}
+
+                          {/* Page numbers */}
+                          {pageNums.map((p) => (
+                            <Link key={p} href={qs(p)}
+                              className={`w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold transition-all ${p === page ? "gradient-forest text-white shadow-green" : "bg-white border border-gray-200 hover:border-forest hover:text-forest"}`}>
+                              {p}
+                            </Link>
+                          ))}
+
+                          {/* Last page if not in range */}
+                          {end < pages && (
+                            <>
+                              {end < pages - 1 && <span className="text-gray-400 px-1">…</span>}
+                              <Link href={qs(pages)} className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold bg-white border border-gray-200 hover:border-forest hover:text-forest transition-all">{pages}</Link>
+                            </>
+                          )}
+
+                          {/* Next */}
+                          {page < pages ? (
+                            <Link href={qs(page + 1)}
+                              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white border border-gray-200 text-sm font-semibold text-gray-700 hover:border-forest hover:text-forest transition-all">
+                              Next →
+                            </Link>
+                          ) : (
+                            <span className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gray-50 border border-gray-100 text-sm font-semibold text-gray-300 cursor-not-allowed">
+                              Next →
+                            </span>
+                          )}
+
+                          <p className="w-full text-center text-xs text-gray-400 mt-2">
+                            Page {page} of {pages} · {total.toLocaleString("en-IN")} nurseries
+                          </p>
+                        </div>
+                      );
+                    })()}
                   </>
                 ) : (
                   <div className="text-center py-24">

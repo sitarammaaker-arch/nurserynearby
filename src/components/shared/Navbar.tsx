@@ -13,8 +13,7 @@ const NAV_LINKS = [
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [catOpen, setCatOpen] = useState(false);
-  const [cityOpen, setCityOpen] = useState(false);
+  // dropdowns use CSS group-hover — no JS state needed
 
   useEffect(() => {
     const fn = () => setScrolled(window.scrollY > 40);
@@ -55,19 +54,16 @@ export default function Navbar() {
               <div className="relative group">
                 <button
                   className="flex items-center gap-1 px-4 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:text-forest hover:bg-forest-50 transition-all"
-                  onMouseEnter={() => setCatOpen(true)}
-                  onMouseLeave={() => setCatOpen(false)}
                 >
                   Find Nursery
                   <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current opacity-60 mt-0.5 transition-transform group-hover:rotate-180"><path d="M7 10l5 5 5-5z"/></svg>
                 </button>
+                {/* invisible bridge prevents gap-triggered close */}
+                <div className="absolute top-full left-0 right-0 h-3 hidden group-hover:block"/>
 
-                {catOpen && (
-                  <div
-                    className="absolute top-full left-1/2 -translate-x-1/2 w-[560px] bg-white rounded-2xl shadow-lifted border border-gray-100 p-6 mt-2"
-                    onMouseEnter={() => setCatOpen(true)}
-                    onMouseLeave={() => setCatOpen(false)}
-                  >
+                <div
+                  className="absolute top-[calc(100%+4px)] left-1/2 -translate-x-1/2 w-[560px] bg-white rounded-2xl shadow-lifted border border-gray-100 p-6 hidden group-hover:block"
+                >
                     <p className="label mb-3">Browse by Category</p>
                     <div className="grid grid-cols-2 gap-2 mb-5">
                       {CATEGORIES.map((c) => (
@@ -87,26 +83,22 @@ export default function Navbar() {
                         ))}
                       </div>
                     </div>
-                  </div>
-                )}
+                </div>
               </div>
 
               {/* Cities dropdown */}
               <div className="relative group">
                 <button
                   className="flex items-center gap-1 px-4 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:text-forest hover:bg-forest-50 transition-all"
-                  onMouseEnter={() => setCityOpen(true)}
-                  onMouseLeave={() => setCityOpen(false)}
                 >
                   Cities
                   <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 fill-current opacity-60 mt-0.5 transition-transform group-hover:rotate-180"><path d="M7 10l5 5 5-5z"/></svg>
                 </button>
-                {cityOpen && (
-                  <div
-                    className="absolute top-full left-0 w-52 bg-white rounded-2xl shadow-lifted border border-gray-100 p-2 mt-2"
-                    onMouseEnter={() => setCityOpen(true)}
-                    onMouseLeave={() => setCityOpen(false)}
-                  >
+                {/* invisible bridge */}
+                <div className="absolute top-full left-0 right-0 h-3 hidden group-hover:block"/>
+                <div
+                  className="absolute top-[calc(100%+4px)] left-0 w-52 bg-white rounded-2xl shadow-lifted border border-gray-100 p-2 hidden group-hover:block"
+                >
                     {CITIES.map((c) => (
                       <Link key={c.slug} href={`/nursery/${c.slug}`}
                         className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-gray-700 hover:bg-forest-50 hover:text-forest transition-colors">
@@ -114,8 +106,7 @@ export default function Navbar() {
                         <span className="ml-auto text-2xs text-gray-400">{c.state}</span>
                       </Link>
                     ))}
-                  </div>
-                )}
+                </div>
               </div>
 
               <Link href="/blog" className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-700 hover:text-forest hover:bg-forest-50 transition-all">Blog</Link>

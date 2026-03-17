@@ -34,62 +34,101 @@ const DEMO_CITIES = CITIES.map((c, i) => ({ ...c, nurseryCount: [142,118,97,54,6
 
 const STATS = [
   { label: "Nurseries Listed",   value: "58,000+", icon: "🌿" }, // updated dynamically below
-  { label: "Cities Covered",     value: "120+",    icon: "🏙️" },
+  { label: "Cities Covered",     value: "250+",    icon: "🏙️" },
   { label: "Happy Customers",    value: "4.8★",    icon: "⭐" },
   { label: "Plant Varieties",    value: "50,000+", icon: "🌺" },
 ];
 
 export default async function HomePage() {
-  // Fetch real featured nurseries from DB
+  // ── Fetch ALL real data from DB ────────────────────────
   let featuredNurseries: any[] = [];
+  let recentNurseries:   any[] = [];
+  let topCities:         any[] = [];
   let totalNurseries = 0;
+  let totalCities    = 0;
+
+  function mapNursery(n: any) {
+    return {
+      id:           n.id,
+      name:         n.name,
+      slug:         n.slug,
+      tagline:      n.tagline,
+      address:      n.address,
+      area:         n.area,
+      cityName:     n.city?.name ?? "",
+      citySlug:     n.city?.slug ?? "",
+      avgRating:    n.avgRating,
+      totalReviews: n.totalReviews,
+      phone:        n.phone,
+      primaryImage: n.photos?.[0]?.url ?? null,
+      isFeatured:   n.isFeatured,
+      isVerified:   n.isVerified,
+      categories:   n.categories?.map((c: any) => c.category.name) ?? [],
+      established:  n.established,
+      createdAt:    n.createdAt,
+    };
+  }
+
+  const nurseryInclude = {
+    city:       { select: { name: true, slug: true } },
+    categories: { include: { category: { select: { name: true } } } },
+    photos:     { where: { isPrimary: true }, take: 1 },
+  };
+
   try {
+    // Featured nurseries
     featuredNurseries = await prisma.nursery.findMany({
       where:   { isActive: true, isFeatured: true },
-      include: {
-        city:       { select: { name: true, slug: true } },
-        categories: { include: { category: { select: { name: true } } } },
-        photos:     { where: { isPrimary: true }, take: 1 },
-      },
+      include: nurseryInclude,
       orderBy: [{ avgRating: "desc" }, { totalReviews: "desc" }],
       take: 6,
     });
-    // Fallback — if no featured, show top rated
     if (featuredNurseries.length === 0) {
       featuredNurseries = await prisma.nursery.findMany({
         where:   { isActive: true },
-        include: {
-          city:       { select: { name: true, slug: true } },
-          categories: { include: { category: { select: { name: true } } } },
-          photos:     { where: { isPrimary: true }, take: 1 },
-        },
-        orderBy: [{ isVerified: "desc" }, { established: "asc" }],
+        include: nurseryInclude,
+        orderBy: [{ isVerified: "desc" }, { id: "desc" }],
         take: 6,
       });
     }
+
+    // Recently added nurseries
+    recentNurseries = await prisma.nursery.findMany({
+      where:   { isActive: true },
+      include: {
+        city:       { select: { name: true, slug: true } },
+        categories: { include: { category: { select: { name: true } } } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: 8,
+    });
+
+    // Top cities with real nursery counts
+    topCities = await prisma.city.findMany({
+      where:   { isActive: true, nurseryCount: { gt: 0 } },
+      orderBy: { nurseryCount: "desc" },
+      take: 12,
+    });
+
     totalNurseries = await prisma.nursery.count({ where: { isActive: true } });
-  } catch {}
+    totalCities    = await prisma.city.count({ where: { isActive: true, nurseryCount: { gt: 0 } } });
+  } catch(e) { console.error("Homepage DB error:", e); }
 
-  // Map to NurseryCard format
-  const nurseryCards = featuredNurseries.map((n: any) => ({
-    id:           n.id,
-    name:         n.name,
-    slug:         n.slug,
-    tagline:      n.tagline,
-    address:      n.address,
-    area:         n.area,
-    cityName:     n.city?.name ?? "",
-    avgRating:    n.avgRating,
-    totalReviews: n.totalReviews,
-    phone:        n.phone,
-    primaryImage: n.photos?.[0]?.url ?? null,
-    isFeatured:   n.isFeatured,
-    isVerified:   n.isVerified,
-    categories:   n.categories?.map((c: any) => c.category.name) ?? [],
-    established:  n.established,
-  }));
+  const displayNurseries = featuredNurseries.length > 0
+    ? featuredNurseries.map(mapNursery)
+    : DEMO_NURSERIES;
 
-  const displayNurseries = nurseryCards.length > 0 ? nurseryCards : DEMO_NURSERIES;
+  const displayRecent = recentNurseries.length > 0 ? recentNurseries : null;
+
+  const displayCities = topCities.length > 0
+    ? topCities.map((c: any) => ({
+        slug:         c.slug,
+        name:         c.name,
+        state:        c.state ?? "",
+        emoji:        "🌿",
+        nurseryCount: c.nurseryCount ?? 0,
+      }))
+    : DEMO_CITIES;
 
   return (
     <>
@@ -163,6 +202,8 @@ export default async function HomePage() {
                   <span className="font-display text-2xl font-bold text-white block">
                     {s.label === "Nurseries Listed" && totalNurseries > 0
                       ? totalNurseries.toLocaleString("en-IN") + "+"
+                      : s.label === "Cities Covered" && totalCities > 0
+                      ? totalCities.toLocaleString("en-IN") + "+"
                       : s.value}
                   </span>
                   <span className="text-2xs text-forest-300 uppercase tracking-wider font-medium">{s.label}</span>
@@ -217,8 +258,23 @@ export default async function HomePage() {
               <p className="body-md max-w-lg mx-auto">We've mapped the best nurseries across India's top cities.</p>
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-              {DEMO_CITIES.map((c) => <CityCard key={c.slug} {...c}/>)}
+              {displayCities.map((c: any) => (
+                <Link key={c.slug} href={`/nursery/${c.slug}`}
+                  className="group card-hover p-4 flex flex-col items-center text-center gap-1.5">
+                  <span className="text-3xl">{c.emoji ?? "🌿"}</span>
+                  <span className="font-display font-bold text-sm text-gray-900 group-hover:text-forest transition-colors leading-tight">{c.name}</span>
+                  <span className="text-2xs text-gray-400">{c.state}</span>
+                  <span className="text-xs font-semibold text-forest mt-0.5">{(c.nurseryCount ?? 0).toLocaleString("en-IN")} nurseries</span>
+                </Link>
+              ))}
             </div>
+            {totalCities > 12 && (
+              <div className="text-center mt-6">
+                <Link href="/states" className="btn btn-outline btn-sm">
+                  View All {totalCities.toLocaleString("en-IN")} Cities →
+                </Link>
+              </div>
+            )}
           </div>
         </section>
 
@@ -233,28 +289,36 @@ export default async function HomePage() {
               <Link href="/nursery/all?sort=newest" className="btn btn-ghost btn-sm">View All →</Link>
             </div>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-soft overflow-hidden divide-y divide-gray-50">
-              {[
-                { name:"Patel Garden Centre", city:"Pune", cat:"Indoor Plants",   t:"2 hrs ago",   slug:"patel-garden" },
-                { name:"Green Leaf Nursery",  city:"Lucknow", cat:"Flower Plants", t:"4 hrs ago",  slug:"green-leaf"   },
-                { name:"Sharma Plant World",  city:"Ahmedabad",cat:"Fruit Plants", t:"Yesterday",  slug:"sharma-plants"},
-                { name:"Royal Botanics",      city:"Kochi",  cat:"Rare Plants",    t:"Yesterday",  slug:"royal-bots"   },
-                { name:"Deva Botanical",      city:"Nagpur", cat:"Garden Supplies", t:"2 days ago", slug:"deva-bots"   },
-              ].map((r, i) => (
-                <Link key={i} href={`/listing/${r.slug}`}
-                  className="flex items-center justify-between px-5 py-4 hover:bg-forest-50 group transition-colors">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-xl gradient-forest flex items-center justify-center text-white text-lg shrink-0">🌱</div>
-                    <div>
-                      <p className="font-semibold text-gray-900 group-hover:text-forest transition-colors text-sm">{r.name}</p>
-                      <p className="text-xs text-gray-400">{r.city} · {r.cat}</p>
+              {(displayRecent ?? []).map((r: any, i: number) => {
+                const cat = r.categories?.[0]?.category?.name ?? "Nursery";
+                const city = r.city?.name ?? "";
+                const ago  = (() => {
+                  const diff = Date.now() - new Date(r.createdAt).getTime();
+                  const h = Math.floor(diff / 3600000);
+                  if (h < 24) return h <= 1 ? "Just now" : `${h} hrs ago`;
+                  const d = Math.floor(h / 24);
+                  return d === 1 ? "Yesterday" : `${d} days ago`;
+                })();
+                return (
+                  <Link key={r.id} href={`/listing/${r.slug}`}
+                    className="flex items-center justify-between px-5 py-4 hover:bg-forest-50 group transition-colors">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 rounded-xl gradient-forest flex items-center justify-center text-white text-lg shrink-0">🌱</div>
+                      <div>
+                        <p className="font-semibold text-gray-900 group-hover:text-forest transition-colors text-sm">{r.name}</p>
+                        <p className="text-xs text-gray-400">{city} · {cat}</p>
+                      </div>
                     </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xs text-gray-400 hidden sm:block">{r.t}</span>
-                    <span className="badge badge-green">New</span>
-                  </div>
-                </Link>
-              ))}
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xs text-gray-400 hidden sm:block">{ago}</span>
+                      <span className="badge badge-green">New</span>
+                    </div>
+                  </Link>
+                );
+              })}
+              {!displayRecent && (
+                <div className="px-5 py-8 text-center text-gray-400 text-sm">Loading recent nurseries…</div>
+              )}
             </div>
           </div>
         </section>
@@ -302,7 +366,7 @@ export default async function HomePage() {
             <span className="text-5xl block mb-5">🌿</span>
             <h2 className="font-display text-4xl sm:text-5xl font-bold text-white mb-4">Own a Nursery?</h2>
             <p className="text-forest-200 text-lg max-w-xl mx-auto mb-8">
-              Join 12,400+ nurseries listed on NurseryNearby. Get discovered by plant lovers in your city — completely free.
+              Join {totalNurseries > 0 ? totalNurseries.toLocaleString("en-IN") : "58,000"}+ nurseries listed on NurseryNearby. Get discovered by plant lovers in your city — completely free.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/add-listing" className="btn btn-lg" style={{ background:"#faf7f0", color:"#1a3a2a", fontFamily:"DM Sans, sans-serif" }}>
