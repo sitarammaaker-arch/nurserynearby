@@ -24,9 +24,7 @@ const CITY_STATE_MAP: Record<string, string> = {
   "Bilaspur": "Himachal Pradesh",
   "Nahan": "Himachal Pradesh",
   "Kangra": "Himachal Pradesh",
-  "Ranikhet": "Himachal Pradesh",
   "Kasauli": "Himachal Pradesh",
-  "Mussoorie": "Himachal Pradesh",
   "Dalhousie": "Himachal Pradesh",
   "Parwanoo": "Himachal Pradesh",
   "Nalagarh": "Himachal Pradesh",
@@ -47,10 +45,7 @@ const CITY_STATE_MAP: Record<string, string> = {
   "Naggar": "Himachal Pradesh",
   "Keylong": "Himachal Pradesh",
   "Kaza": "Himachal Pradesh",
-  "Bageshwar": "Himachal Pradesh",
-  "Pithoragarh": "Himachal Pradesh",
   "Gopeshwar": "Himachal Pradesh",
-  "Champawat": "Himachal Pradesh",
 
   // Jammu & Kashmir cities
   "Srinagar": "Jammu and Kashmir",
