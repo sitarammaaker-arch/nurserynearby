@@ -349,9 +349,20 @@ export default async function HomePage() {
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                {["https://images.unsplash.com/photo-1585320806297-9794b3e4aaae?w=400&q=80","https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&q=80","https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?w=400&q=80","https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80"].map((src, i) => (
-                  <div key={i} className={`relative rounded-2xl overflow-hidden ${i === 0 ? "col-span-2 aspect-[2/1]" : "aspect-square"}`}>
-                    <Image src={src} alt="Nursery" fill className="object-cover hover:scale-105 transition-transform duration-500"/>
+                {[
+                  { src:"https://images.unsplash.com/photo-1585320806297-9794b3e4aaae?w=600&q=80", wide: true  },
+                  { src:"https://images.unsplash.com/photo-1416879595882-3373a0480b5b?w=400&q=80", wide: false },
+                  { src:"https://images.unsplash.com/photo-1466692476868-aef1dfb1e735?w=400&q=80", wide: false },
+                  { src:"https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&q=80", wide: false },
+                ].map((item, i) => (
+                  <div key={i} className={`rounded-2xl overflow-hidden ${item.wide ? "col-span-2" : ""}`}
+                    style={{ height: item.wide ? "200px" : "160px" }}>
+                    <img
+                      src={item.src}
+                      alt="Nursery plants"
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-500"
+                      loading="lazy"
+                    />
                   </div>
                 ))}
               </div>
